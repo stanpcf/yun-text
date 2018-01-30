@@ -11,7 +11,6 @@ from keras.layers import Layer
 from keras import initializers, regularizers, constraints
 from keras import backend as K
 
-from data_process import get_data
 from metric import yun_metric
 
 
@@ -20,7 +19,7 @@ class TextModel(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640, optimizer='adam',
-                 use_pretrained=False, trainable=True, global_data=True, **kwargs):
+                 use_pretrained=False, trainable=True, min_word_len=2, **kwargs):
         """
         :param nb_epoch: 迭代次数
         :param max_len:  规整化每个句子的长度
@@ -30,7 +29,7 @@ class TextModel(object):
         :param optimizer: 优化器
         :param use_pretrained: 是否嵌入层使用预训练的模型
         :param trainable: 是否嵌入层可训练, 该参数只有在use_pretrained为真时有用
-        :param global_data: 是否使用全局的训练数据. 如果true, 则kwargs必须包含如下几项，详见kwargs说明
+        :param min_word_len: 同data_process/get_data的min_word_len存储信息一样. 用于生成weight_path
         :param kwargs: dict: global_data为true, 则必须包含
                 (x_train, y_train, x_valid, y_valid, x_test, test_id) 这几项
         """
@@ -42,20 +41,18 @@ class TextModel(object):
         self.optimizer = optimizer
         self.use_pretrained = use_pretrained
         self.trainable = trainable
+        self.min_word_len = min_word_len
         self.time = datetime.now().strftime('%Y%m%d%H')
-        if not global_data:
-            (self.x_train, self.y_train, self.sample_weights), (self.x_valid, self.y_valid, self.valid_id), \
-             self.x_test, self.test_id = get_data(max_len=self.max_len)
-        else:
-            self.x_train = kwargs['x_train']
-            self.y_train = kwargs['y_train']
-            self.sample_weights = kwargs['sample_weights']
-            self.x_valid = kwargs['x_valid']
-            self.y_valid = kwargs['y_valid']
-            self.valid_id = kwargs['valid_id']
-            self.x_test = kwargs['x_test']
-            self.test_id = kwargs['test_id']
-            assert self.max_len == self.x_train.shape[-1]
+
+        self.x_train = kwargs['x_train']
+        self.y_train = kwargs['y_train']
+        self.sample_weights = kwargs['sample_weights']
+        self.x_valid = kwargs['x_valid']
+        self.y_valid = kwargs['y_valid']
+        self.valid_id = kwargs['valid_id']
+        self.x_test = kwargs['x_test']
+        self.test_id = kwargs['test_id']
+        assert self.max_len == self.x_train.shape[-1]
 
     @abstractmethod
     def get_model(self) -> Model:
@@ -82,7 +79,7 @@ class TextModel(object):
         callback_list = [model_checkpoint, early_stopping]
         model.fit(self.x_train, self.y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
                   validation_split=0.1, callbacks=callback_list, sample_weight=self.sample_weights)
-        print("model train finish: ", bst_model_path)
+        print("model train finish: ", bst_model_path, "at time: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     def predict(self, predict_offline=True, bst_model_path=None):
         if not bst_model_path:

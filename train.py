@@ -21,6 +21,9 @@ flags.DEFINE_bool('trainable', True,
                   "if the embedding layer is trainable. this param is used only `use_pretrained` is true")
 flags.DEFINE_integer("conv_kernel", 3, "kernel size of TextCNN")
 
+flags.DEFINE_bool("set_cls_weight", True, "if set class weights for sample， default true")
+flags.DEFINE_integer("min_word_len", 2, "filter words whose length < min_word_len")
+
 FLAGS = flags.FLAGS
 
 register_model = [
@@ -33,7 +36,8 @@ register_model = [
 def main():
     max_len = FLAGS.max_len
     (x_train, y_train, sample_weights), (x_valid, y_valid, valid_id), x_test, test_id = \
-        get_data(train_size=FLAGS.train_size, max_len=max_len, set_cls_weight=True)
+        get_data(train_size=FLAGS.train_size, max_len=max_len, set_cls_weight=FLAGS.set_cls_weight,
+                 min_word_len=FLAGS.min_word_len)
     kwargs = {
         "x_train": x_train,
         "y_train": y_train,
@@ -52,7 +56,8 @@ def main():
         cls = _module.__dict__.get(cls_name)
         model = cls(nb_epoch=FLAGS.nb_epoch, max_len=FLAGS.max_len, embed_size=FLAGS.embed_size,
                     last_act=FLAGS.last_act, batch_size=FLAGS.batch_size, optimizer=FLAGS.optimizer,
-                    global_data=FLAGS.global_data, filter_window=FLAGS.conv_kernel, **kwargs)
+                    global_data=FLAGS.global_data, filter_window=FLAGS.conv_kernel,
+                    min_word_len=FLAGS.min_word_len, **kwargs)
 
         model.train()
         model.predict()
