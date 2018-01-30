@@ -32,10 +32,12 @@ register_model = [
 
 def main():
     max_len = FLAGS.max_len
-    (x_train, y_train), (x_valid, y_valid, valid_id), x_test, test_id = get_data(train_size=FLAGS.train_size, max_len=max_len)
+    (x_train, y_train, sample_weights), (x_valid, y_valid, valid_id), x_test, test_id = \
+        get_data(train_size=FLAGS.train_size, max_len=max_len, set_cls_weight=True)
     kwargs = {
         "x_train": x_train,
         "y_train": y_train,
+        "sample_weights": sample_weights,
         "x_valid": x_valid,
         "y_valid": y_valid,
         "valid_id": valid_id,

@@ -30,16 +30,17 @@ class TextCNNMultiKernel(TextModel):
         x = concatenate(concat_x)
 
         x = Dropout(0.3)(x)
-        x = Dense(6, activation=self.last_act)(x)  # softmax
+        x = Dense(5, activation=self.last_act)(x)  # softmax
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
         return model
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}.h5".format(pre=self.__class__.__name__,
-                                                                      act=self.last_act, epo=self.nb_epoch,
-                                                                      embed=self.embed_size, max_len=self.max_len,
-                                                                      wind="-".join([str(s) for s in self.filters]))
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{time}.h5".format(
+            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
+            embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
+            time=self.time
+        )
 
 
 class TextCNNMultiKernelBN(TextModel):
@@ -65,13 +66,14 @@ class TextCNNMultiKernelBN(TextModel):
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
 
-        x = Dense(6, activation=self.last_act)(x)  # softmax
+        x = Dense(5, activation=self.last_act)(x)  # softmax
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
         return model
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}.h5".format(pre=self.__class__.__name__,
-                                                                      act=self.last_act, epo=self.nb_epoch,
-                                                                      embed=self.embed_size, max_len=self.max_len,
-                                                                      wind="-".join([str(s) for s in self.filters]))
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{time}.h5".format(
+            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
+            embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
+            time=self.time
+        )

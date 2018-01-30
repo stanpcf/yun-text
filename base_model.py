@@ -2,6 +2,7 @@
 
 import os
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
 
 import pandas as pd
 from keras.models import Model
@@ -41,12 +42,14 @@ class TextModel(object):
         self.optimizer = optimizer
         self.use_pretrained = use_pretrained
         self.trainable = trainable
+        self.time = datetime.now().strftime('%Y%m%d%H')
         if not global_data:
-            (self.x_train, self.y_train), (self.x_valid, self.y_valid, self.valid_id), self.x_test, self.test_id = \
-                get_data(max_len=self.max_len)
+            (self.x_train, self.y_train, self.sample_weights), (self.x_valid, self.y_valid, self.valid_id), \
+             self.x_test, self.test_id = get_data(max_len=self.max_len)
         else:
             self.x_train = kwargs['x_train']
             self.y_train = kwargs['y_train']
+            self.sample_weights = kwargs['sample_weights']
             self.x_valid = kwargs['x_valid']
             self.y_valid = kwargs['y_valid']
             self.valid_id = kwargs['valid_id']
@@ -57,12 +60,12 @@ class TextModel(object):
     @abstractmethod
     def get_model(self) -> Model:
         """定义一个keras net, compile it and return the model"""
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def _get_bst_model_path(self) -> str:
         """return a name which is used for save trained weights"""
-        pass
+        raise NotImplementedError
 
     def get_bst_model_path(self):
         dirname = self._get_model_path()
@@ -78,7 +81,7 @@ class TextModel(object):
         early_stopping = EarlyStopping(monitor='val_loss', patience=20)
         callback_list = [model_checkpoint, early_stopping]
         model.fit(self.x_train, self.y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
-                  validation_split=0.1, callbacks=callback_list)
+                  validation_split=0.1, callbacks=callback_list, sample_weight=self.sample_weights)
         print("model train finish: ", bst_model_path)
 
     def predict(self, predict_offline=True, bst_model_path=None):
@@ -90,11 +93,13 @@ class TextModel(object):
         if predict_offline:
             _valid_pred = model.predict(self.x_valid)
             valid_pred = _valid_pred.argmax(axis=1)
+            valid_pred = valid_pred + 1
             self._save_to_csv(self.valid_id, valid_pred, bst_model_path, valid_data=True)
-            _y_valid = self.y_valid.argmax(axis=1)
+            _y_valid = self.y_valid.argmax(axis=1) + 1
             print("valid yun metric:", yun_metric(_y_valid, valid_pred))
         _y_test = model.predict(self.x_test)
         y_test = _y_test.argmax(axis=1)
+        y_test = y_test + 1
         self._save_to_csv(self.test_id, y_test, bst_model_path, valid_data=False)
 
     def _save_to_csv(self, ids, scores, path, valid_data=False):
@@ -103,7 +108,7 @@ class TextModel(object):
             "Id": ids,
             "Score": scores
         })
-        if valid_data:
+        if not valid_data:
             result_path = self._get_result_path(path)
         else:
             _tmp = self._get_result_path(path)
