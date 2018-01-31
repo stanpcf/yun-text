@@ -50,6 +50,6 @@ class AttentionLSTM(TextModel):
         """
         a = Permute((2, 1))(inputs)
         a = Dense(self.max_len, activation='softmax')(a)
-        a_probs = Permute((2, 1))(a)
+        a_probs = Permute((2, 1))(a)    # attention_vec
         att_mul = multiply([inputs, a_probs])
         return att_mul
