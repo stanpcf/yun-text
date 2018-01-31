@@ -17,8 +17,8 @@ test_prd_file = _d + "/result/" + _f + ".csv"
 valid_prd = pd.read_csv(valid_prd_file, header=None, names=['Id', 'prd'])
 test_prd = pd.read_csv(test_prd_file, header=None, names=['Id', 'prd'])
 
-train = pd.read_csv("./input/processed/train_first.csv", index_col=0)
-test = pd.read_csv("./input/processed/predict_first.csv", index_col=0)
+train = pd.read_csv("./input/processed/train_first.csv")
+test = pd.read_csv("./input/processed/predict_first.csv")
 
 valid_merge = pd.merge(valid_prd, train, how='left', on=['Id'])
 valid_merge = valid_merge[['Id', 'prd', 'Score', 'Discuss_processed', 'Discuss']]

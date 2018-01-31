@@ -2,9 +2,17 @@
 # coding: utf8
 
 import os
-import fool
 from tqdm import tqdm
 import pandas as pd
+
+# 分词工具
+import fool
+import jieba
+import pynlpir
+import thulac
+
+thu = thulac.thulac(seg_only=True)
+pynlpir.open(encoding_errors='ignore')
 
 data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "input")
 processed_dir = "processed"
@@ -14,22 +22,40 @@ test_file = 'predict_first.csv'
 train = pd.read_csv(os.path.join(data_dir, 'YNU.EDU2018-ScenicWord', train_file))
 test = pd.read_csv(os.path.join(data_dir, 'YNU.EDU2018-ScenicWord', test_file))
 
-Discuss_processed_train = []
-Discuss_processed_test = []
+jieba_train, jieba_test = [], []
+fool_train, fool_test = [], []
+pynlpir_train, pynlpir_test = [], []
+thulac_train, thulac_test = [], []
+
+print("process train data")
 for text in tqdm(train["Discuss"].values):
-    tokens = fool.cut(text)[0]
-    Discuss_processed_train.append(" ".join(tokens))
+    jieba_train.append(" ".join(jieba.cut(text)))
+    fool_train.append(" ".join(fool.cut(text)[0]))
+    pynlpir_train.append(" ".join(pynlpir.segment(text, pos_tagging=False)))
+    thulac_train.append(" ".join([_l[0] for _l in thu.cut(text)]))
 
+print("process test data")
 for text in tqdm(test["Discuss"].values):
-    tokens = fool.cut(text)[0]
-    Discuss_processed_test.append(" ".join(tokens))
+    jieba_test.append(" ".join(jieba.cut(text)))
+    fool_test.append(" ".join(fool.cut(text)[0]))
+    pynlpir_test.append(" ".join(pynlpir.segment(text, pos_tagging=False)))
+    thulac_test.append(" ".join([_l[0] for _l in thu.cut(text)]))
 
+train['fool'] = fool_train
+train['jieba'] = jieba_train
+train['pynlpir'] = pynlpir_train
+train['thulac'] = thulac_train
 
-train['Discuss_processed'] = Discuss_processed_train
-test['Discuss_processed'] = Discuss_processed_test
+test['fool'] = fool_test
+test['jieba'] = jieba_test
+test['pynlpir'] = pynlpir_test
+test['thulac'] = thulac_test
 
-if not os.path.exists(processed_dir):
-    os.mkdir(os.path.join(data_dir, processed_dir))
+_processed_dir = os.path.join(data_dir, processed_dir)
+if not os.path.exists(_processed_dir):
+    os.mkdir(_processed_dir)
 
-train.to_csv(os.path.join(data_dir, processed_dir, train_file))
-test.to_csv(os.path.join(data_dir, processed_dir, test_file))
+train.to_csv(os.path.join(data_dir, processed_dir, train_file), index=False)
+test.to_csv(os.path.join(data_dir, processed_dir, test_file), index=False)
+
+pynlpir.close()

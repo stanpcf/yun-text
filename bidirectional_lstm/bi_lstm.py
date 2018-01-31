@@ -12,11 +12,12 @@ from metric import tensor_yun_loss
 
 
 class BiLSTM(TextModel):
+    """该模型使用多种分词工具之后的切割作为输入"""
     def get_model(self):
-        inputs = Input(shape=(self.max_len,))
-        emb = Embedding(MAX_FEATURE, self.embed_size, input_length=self.max_len)(inputs)
-        x = Bidirectional(LSTM(50, return_sequences=True))(emb)
-        x = GlobalMaxPool1D()(x)
+        inputs, outputs = self._get_multi_input(self.inputs_num)
+
+        x = concatenate(outputs)
+
         x = Dense(64, activation='relu')(x)
         x = Dropout(0.2)(x)
         x = BatchNormalization()(x)
@@ -25,8 +26,20 @@ class BiLSTM(TextModel):
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
         return model
 
+    def _get_multi_input(self, num):
+        inputs = []
+        outputs = []
+        for _ in range(num):
+            inp = Input(shape=(self.max_len,))
+            emb = Embedding(MAX_FEATURE, self.embed_size, input_length=self.max_len)(inp)
+            x = Bidirectional(LSTM(50, return_sequences=True))(emb)
+            x = GlobalMaxPool1D()(x)
+            outputs.append(x)
+            inputs.append(inp)
+        return inputs, outputs
+
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}.h5".format(
-            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}_{inp_num}.h5".format(
+            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, inp_num=self.inputs_num,
             embed=self.embed_size, max_len=self.max_len, time=self.time, mwl=self.min_word_len
         )

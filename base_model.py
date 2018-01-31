@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
 import pandas as pd
-from keras.models import Model
+from keras.models import Model, load_model, save_model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import Layer
 from keras import initializers, regularizers, constraints
@@ -18,9 +18,10 @@ class TextModel(object):
     """abstract base model for all text classification model."""
     __metaclass__ = ABCMeta
 
-    def __init__(self, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640, optimizer='adam',
-                 use_pretrained=False, trainable=True, min_word_len=2, **kwargs):
+    def __init__(self, data, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640,
+                 optimizer='adam', use_pretrained=False, trainable=True, min_word_len=2):
         """
+        :param data: data_process.get_data返回的对象
         :param nb_epoch: 迭代次数
         :param max_len:  规整化每个句子的长度
         :param embed_size: 词向量维度
@@ -30,8 +31,6 @@ class TextModel(object):
         :param use_pretrained: 是否嵌入层使用预训练的模型
         :param trainable: 是否嵌入层可训练, 该参数只有在use_pretrained为真时有用
         :param min_word_len: 同data_process/get_data的min_word_len存储信息一样. 用于生成weight_path
-        :param kwargs: dict: global_data为true, 则必须包含
-                (x_train, y_train, x_valid, y_valid, x_test, test_id) 这几项
         """
         self.nb_epoch = nb_epoch
         self.max_len = max_len
@@ -43,16 +42,10 @@ class TextModel(object):
         self.trainable = trainable
         self.min_word_len = min_word_len
         self.time = datetime.now().strftime('%Y%m%d%H')
+        self.callback_list = []
 
-        self.x_train = kwargs['x_train']
-        self.y_train = kwargs['y_train']
-        self.sample_weights = kwargs['sample_weights']
-        self.x_valid = kwargs['x_valid']
-        self.y_valid = kwargs['y_valid']
-        self.valid_id = kwargs['valid_id']
-        self.x_test = kwargs['x_test']
-        self.test_id = kwargs['test_id']
-        assert self.max_len == self.x_train.shape[-1]
+        self.data = data
+        self.inputs_num = len(self.data.sent)
 
     @abstractmethod
     def get_model(self) -> Model:
@@ -63,11 +56,46 @@ class TextModel(object):
     def _get_bst_model_path(self) -> str:
         """return a name which is used for save trained weights"""
         raise NotImplementedError
+    #
+    # @abstractmethod
+    # def _model_fit(self, model: Model):
+    #     """fit the model use data"""
+    #     raise NotImplementedError
+    #
+    # @abstractmethod
+    # def _model_predict(self, model: Model, dtype: str):
+    #     """
+    #     predict the data according to dtype. and return the predict
+    #     dtype: test, valid
+    #     """
+    #     raise NotImplementedError
+
+    def _model_fit(self, model: Model):
+        x_train = self._get_data("train")
+        model.fit(x_train, self.data.y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
+                  validation_split=0.1, callbacks=self.callback_list,
+                  sample_weight=self.data.sample_weights)
+
+    def _model_predict(self, model: Model, dtype: str):
+        x = self._get_data(dtype)
+        _y = model.predict(x)
+        y = _y.argmax(axis=1)
+        y = y + 1
+        return y
 
     def get_bst_model_path(self):
         dirname = self._get_model_path()
         path = os.path.join(dirname, self._get_bst_model_path())
         return path
+
+    def _get_data(self, dtype='train'):
+        """
+        :param dtype: train, valid, test
+        self.data.sent 是个OrderDict. 保证了每次从里面获取的train, valid, test都是一致的
+        :return list:
+        """
+        key = "x_" + dtype
+        return [v[key] for v in self.data.sent.values()]
 
     def train(self):
         model = self.get_model()
@@ -76,28 +104,23 @@ class TextModel(object):
         bst_model_path = self.get_bst_model_path()
         model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
         early_stopping = EarlyStopping(monitor='val_loss', patience=20)
-        callback_list = [model_checkpoint, early_stopping]
-        model.fit(self.x_train, self.y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
-                  validation_split=0.1, callbacks=callback_list, sample_weight=self.sample_weights)
+        self.callback_list = [model_checkpoint, early_stopping]
+        self._model_fit(model)
         print("model train finish: ", bst_model_path, "at time: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-    def predict(self, predict_offline=True, bst_model_path=None):
+    def predict(self, predict_offline=True, bst_model_path=None):  # todo 这一块抽象给子类
         if not bst_model_path:
             bst_model_path = self.get_bst_model_path()
 
         model = self.get_model()
         model.load_weights(bst_model_path)
         if predict_offline:
-            _valid_pred = model.predict(self.x_valid)
-            valid_pred = _valid_pred.argmax(axis=1)
-            valid_pred = valid_pred + 1
-            self._save_to_csv(self.valid_id, valid_pred, bst_model_path, valid_data=True)
-            _y_valid = self.y_valid.argmax(axis=1) + 1
+            valid_pred = self._model_predict(model, 'valid')
+            self._save_to_csv(self.data.valid_id, valid_pred, bst_model_path, valid_data=True)
+            _y_valid = self.data.y_valid.argmax(axis=1) + 1
             print("valid yun metric:", yun_metric(_y_valid, valid_pred))
-        _y_test = model.predict(self.x_test)
-        y_test = _y_test.argmax(axis=1)
-        y_test = y_test + 1
-        self._save_to_csv(self.test_id, y_test, bst_model_path, valid_data=False)
+        y_test = self._model_predict(model, 'test')
+        self._save_to_csv(self.data.test_id, y_test, bst_model_path, valid_data=False)
 
     def _save_to_csv(self, ids, scores, path, valid_data=False):
         assert len(ids) == len(scores)
