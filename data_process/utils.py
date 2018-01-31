@@ -1,10 +1,10 @@
 # coding: utf8
 
-import os
+from pathlib import Path
 
 
 def get_stop_words():
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stopwords.txt')
+    path = Path(__file__).absolute().parent / 'stopwords.txt'
     with open(path) as f:
         words = [line.strip() for line in f]
-    return words
+    return frozenset(words)
