@@ -13,10 +13,7 @@ from metric import tensor_yun_loss
 
 class AttentionLSTM1(TextModel):
     def get_model(self):
-        inputs = Input(shape=(self.max_len,))
-        emb = Embedding(MAX_FEATURE, self.embed_size, input_length=self.max_len)(inputs)
-        x = Bidirectional(LSTM(256, return_sequences=True))(emb)
-        x = Attention(self.max_len)(x)
+        inputs, x = self._get_multi_input(self.inputs_num)
         x = Dense(64, activation='relu')(x)
         x = Dropout(0.2)(x)
         x = Dense(5, activation=self.last_act)(x)
@@ -46,3 +43,16 @@ class AttentionLSTM1(TextModel):
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, time=self.time, mwl=self.min_word_len
         )
+
+    def _get_multi_input(self, num):
+        inputs = []
+        outputs = []
+        for _ in range(num):
+            inp = Input(shape=(self.max_len,))
+            emb = Embedding(MAX_FEATURE, self.embed_size, input_length=self.max_len)(inp)
+            x = Bidirectional(LSTM(128, return_sequences=True))(emb)
+            x = Attention(self.max_len)(x)
+            outputs.append(x)
+            inputs.append(inp)
+        output = concatenate(outputs) if num >= 2 else outputs[0]
+        return inputs, output

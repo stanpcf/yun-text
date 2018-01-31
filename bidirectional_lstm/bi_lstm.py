@@ -14,12 +14,10 @@ from metric import tensor_yun_loss
 class BiLSTM(TextModel):
     """该模型使用多种分词工具之后的切割作为输入"""
     def get_model(self):
-        inputs, outputs = self._get_multi_input(self.inputs_num)
-
-        x = concatenate(outputs)
+        inputs, x = self._get_multi_input(self.inputs_num)
 
         x = Dense(64, activation='relu')(x)
-        x = Dropout(0.2)(x)
+        # x = Dropout(0.2)(x)
         x = BatchNormalization()(x)
         x = Dense(5, activation=self.last_act)(x)
         model = Model(inputs=inputs, outputs=x)
@@ -36,7 +34,8 @@ class BiLSTM(TextModel):
             x = GlobalMaxPool1D()(x)
             outputs.append(x)
             inputs.append(inp)
-        return inputs, outputs
+        output = concatenate(outputs) if num >= 2 else outputs[0]
+        return inputs, output
 
     def _get_bst_model_path(self):
         return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}_{inp_num}.h5".format(

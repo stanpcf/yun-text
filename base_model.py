@@ -18,8 +18,8 @@ class TextModel(object):
     """abstract base model for all text classification model."""
     __metaclass__ = ABCMeta
 
-    def __init__(self, data, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640,
-                 optimizer='adam', use_pretrained=False, trainable=True, min_word_len=2):
+    def __init__(self, *, data, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640,
+                 optimizer='adam', use_pretrained=False, trainable=True, min_word_len=2, **kwargs):
         """
         :param data: data_process.get_data返回的对象
         :param nb_epoch: 迭代次数
@@ -31,6 +31,7 @@ class TextModel(object):
         :param use_pretrained: 是否嵌入层使用预训练的模型
         :param trainable: 是否嵌入层可训练, 该参数只有在use_pretrained为真时有用
         :param min_word_len: 同data_process/get_data的min_word_len存储信息一样. 用于生成weight_path
+        :param kwargs
         """
         self.nb_epoch = nb_epoch
         self.max_len = max_len
@@ -43,6 +44,7 @@ class TextModel(object):
         self.min_word_len = min_word_len
         self.time = datetime.now().strftime('%Y%m%d%H')
         self.callback_list = []
+        self.kwargs = kwargs
 
         self.data = data
         self.inputs_num = len(self.data.sent)
