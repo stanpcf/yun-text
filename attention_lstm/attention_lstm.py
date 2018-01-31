@@ -23,8 +23,8 @@ class AttentionLSTM(TextModel):
         return model
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}.h5".format(
-            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}_{inp_num}.h5".format(
+            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, inp_num=self.inputs_num,
             embed=self.embed_size, max_len=self.max_len, time=self.time, mwl=self.min_word_len
         )
 
