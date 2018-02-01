@@ -6,7 +6,7 @@ from keras.layers import *
 from keras.models import Model
 sys.path.append("../")
 
-from data_process import MAX_FEATURE
+from data_process import get_embedding_layer
 from base_model import TextModel
 from metric import tensor_yun_loss
 
@@ -29,7 +29,8 @@ class BiLSTM(TextModel):
         outputs = []
         for _ in range(num):
             inp = Input(shape=(self.max_len,))
-            emb = Embedding(MAX_FEATURE, self.embed_size, input_length=self.max_len)(inp)
+            emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
+                                      use_pretrained=self.use_pretrained, trainable=self.trainable)(inp)
             x = Bidirectional(LSTM(50, return_sequences=True))(emb)
             x = GlobalMaxPool1D()(x)
             outputs.append(x)
@@ -38,7 +39,8 @@ class BiLSTM(TextModel):
         return inputs, output
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}_{inp_num}.h5".format(
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}_{inp_num}_upt:{upt}_tn:{tn}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, inp_num=self.inputs_num,
-            embed=self.embed_size, max_len=self.max_len, time=self.time, mwl=self.min_word_len
+            embed=self.embed_size, max_len=self.max_len, time=self.time, mwl=self.min_word_len,
+            upt=self.use_pretrained, tn=self.trainable
         )

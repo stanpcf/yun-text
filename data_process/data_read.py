@@ -10,7 +10,10 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.utils.np_utils import to_categorical
 from sklearn.model_selection import train_test_split
 
-MAX_FEATURE = 100000
+try:
+    from .config import cfg
+except ModuleNotFoundError as e:
+    from config import cfg
 
 data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "input")
 
@@ -38,6 +41,7 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
             y_valid
             valid_id
             test_id
+            tokenizer
     """
     all = ['fool', 'jieba', 'pynlpir', 'thulac']
     if cut_tool != 'all':
@@ -73,7 +77,7 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
         corpus = []
         for tn in tmp_raw.values():
             corpus.extend(tn[0])
-        tokenizer = Tokenizer(num_words=MAX_FEATURE)
+        tokenizer = Tokenizer(num_words=cfg.MAX_FEATURE)
         tokenizer.fit_on_texts(corpus)
 
         for tool in ctp:
@@ -87,6 +91,7 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
             x_test = pad_sequences(x_test, maxlen=max_len)
             result_sentence[tool] = {'x_train': x_train, 'x_valid': x_valid, 'x_test': x_test}
     else:
+        tokenizer = None
         for tool in ctp:
             x_train = x_train_mul[tool].tolist()
             x_valid = x_valid_mul[tool].tolist()
@@ -98,13 +103,13 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
         y_valid = to_categorical(y_valid)
 
     if set_cls_weight:
-        weights = np.array([10, 6, 3, 1.2, 1])   # 样本的权重, 索引代表类别, 索引位置的值代表该类别权重 [0, 100, 60, 6, 2, 1]
+        weights = np.array(cfg.SAMPLE_WEIGHT)   # 样本的权重, 索引代表类别, 索引位置的值代表该类别权重 [0, 100, 60, 6, 2, 1]
         index = dtrain['Score'].values - 1
         sample_weights = weights[index]
     else:
         sample_weights = np.ones(dtrain['Score'].shape[0])
     result = EasyDict({"sent": result_sentence, 'y_train': y_train, 'sample_weights': sample_weights,
-                       'y_valid': y_valid, 'valid_id': dvalid['Id'], 'test_id': test["Id"]})
+                       'y_valid': y_valid, 'valid_id': dvalid['Id'], 'test_id': test["Id"], 'tokenizer': tokenizer})
     return result
 
 

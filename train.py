@@ -13,9 +13,9 @@ flags.DEFINE_integer('embed_size', 300, "hidden size of embedding layer")
 flags.DEFINE_string('last_act', 'softmax', "the activation for the last layer")
 flags.DEFINE_integer('batch_size', 640, "batch size for train")
 flags.DEFINE_string('optimizer', 'adam', "the optimizer for train")
-# flags.DEFINE_bool('use_pretrained', False, "if use pretrained vector for embedding layer")
-# flags.DEFINE_bool('trainable', True,
-#                   "if the embedding layer is trainable. this param is used only `use_pretrained` is true")
+flags.DEFINE_bool('use_pretrained', True, "if use pretrained vector for embedding layer")
+flags.DEFINE_bool('trainable', True,
+                  "if the embedding layer is trainable. this param is used only `use_pretrained` is true")
 flags.DEFINE_integer("conv_kernel", 3, "kernel size of TextCNN")
 
 # data relation
@@ -42,7 +42,7 @@ def main():
 
     model = cls(data=data, nb_epoch=FLAGS.nb_epoch, max_len=FLAGS.max_len, embed_size=FLAGS.embed_size,
                 last_act=FLAGS.last_act, batch_size=FLAGS.batch_size, optimizer=FLAGS.optimizer,
-                filter_window=FLAGS.conv_kernel,
+                use_pretrained=FLAGS.use_pretrained, trainable=FLAGS.trainable, filter_window=FLAGS.conv_kernel,
                 min_word_len=FLAGS.min_word_len)
 
     model.train()
