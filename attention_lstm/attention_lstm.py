@@ -26,7 +26,7 @@ class AttentionLSTM(TextModel):
         return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}_{inp_num}_upt:{upt}_tn:{tn}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, inp_num=self.inputs_num,
             embed=self.embed_size, max_len=self.max_len, time=self.time, mwl=self.min_word_len,
-            upt=self.use_pretrained, tn=self.trainable
+            upt=int(self.use_pretrained), tn=int(self.trainable)
         )
 
     def _get_multi_input(self, num):

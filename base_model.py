@@ -12,6 +12,7 @@ from keras import initializers, regularizers, constraints
 from keras import backend as K
 
 from metric import yun_metric
+from data_process import cfg
 
 
 class TextModel(object):
@@ -75,7 +76,7 @@ class TextModel(object):
     def _model_fit(self, model: Model):
         x_train = self._get_data("train")
         model.fit(x_train, self.data.y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
-                  validation_split=0.1, callbacks=self.callback_list,
+                  validation_split=cfg.MODEL_FIT_validation_split, callbacks=self.callback_list,
                   sample_weight=self.data.sample_weights)
 
     def _model_predict(self, model: Model, dtype: str):
@@ -110,7 +111,7 @@ class TextModel(object):
         self._model_fit(model)
         print("model train finish: ", bst_model_path, "at time: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-    def predict(self, predict_offline=True, bst_model_path=None):  # todo 这一块抽象给子类
+    def predict(self, predict_offline=True, bst_model_path=None):
         if not bst_model_path:
             bst_model_path = self.get_bst_model_path()
 

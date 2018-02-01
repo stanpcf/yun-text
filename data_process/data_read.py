@@ -59,7 +59,7 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
     test["Discuss"].fillna(value=fill_value, inplace=True)
     test[ctp].fillna(value=fill_value.lower(), inplace=True)
 
-    dtrain, dvalid = train_test_split(train, random_state=123, train_size=train_size)
+    dtrain, dvalid = train_test_split(train, random_state=cfg.TRAIN_TEST_SPLIT_random_state, train_size=train_size)
     x_train_mul, y_train = dtrain[ctp], dtrain["Score"].values - 1
     x_valid_mul, y_valid = dvalid[ctp], dvalid["Score"].values - 1
     x_test_mul = test[ctp]

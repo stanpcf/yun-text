@@ -40,7 +40,7 @@ class TextCNNMultiKernel(TextModel):
         return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt:{upt}_tn:{tn}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
-            time=self.time, mwl=self.min_word_len, upt=self.use_pretrained, tn=self.trainable
+            time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable)
         )
 
 
@@ -77,5 +77,5 @@ class TextCNNMultiKernelBN(TextModel):
         return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt:{upt}_tn:{tn}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
-            time=self.time, mwl=self.min_word_len, upt=self.use_pretrained, tn=self.trainable
+            time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable)
         )
