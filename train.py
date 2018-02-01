@@ -7,7 +7,7 @@ from tensorflow import flags
 from data_process import get_data
 
 # model relation
-flags.DEFINE_string('classifier', None, "path of the Class for the classifier")
+flags.DEFINE_string('classifier', 'bidirectional_lstm.BiLSTM', "path of the Class for the classifier")
 flags.DEFINE_integer('nb_epoch', 50, "number of epoch")
 flags.DEFINE_integer('embed_size', 300, "hidden size of embedding layer")
 flags.DEFINE_string('last_act', 'softmax', "the activation for the last layer")
