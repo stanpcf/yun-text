@@ -1,14 +1,15 @@
 # coding: utf-8
 import numpy as np
 import pandas as pd
+import os
 from collections import namedtuple
 
 """
 usage: ipython -i result_analysis.py
 """
-
-train = pd.read_csv("./input/processed/train_first.csv")
-test = pd.read_csv("./input/processed/predict_first.csv")
+pro_dir = os.path.dirname(os.path.abspath(__file__))
+train = pd.read_csv(pro_dir + "/input/processed/train_first.csv")
+test = pd.read_csv(pro_dir + "/input/processed/predict_first.csv")
 
 
 def get_result_stat(h5_path):

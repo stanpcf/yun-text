@@ -7,14 +7,15 @@ from keras.models import Model
 sys.path.append("../")
 
 from base_model import TextModel
-from data_process import get_embedding_layer
+from data_process import cfg, get_embedding_layer
 from metric import tensor_yun_loss
 
 
 class TextCNNMultiKernel(TextModel):
+    """目前该model只支持一个inputs"""
 
     def __init__(self, **kwargs):
-        self.filters = [2, 3, 4]
+        self.filters = cfg.TEXT_CNN_filters
         super(TextCNNMultiKernel, self).__init__(**kwargs)
 
     def get_model(self):
@@ -24,17 +25,23 @@ class TextCNNMultiKernel(TextModel):
 
         concat_x = []
         for filter_size in self.filters:
-            x = Conv1D(128, filter_size, activation='relu')(emb)
-            x = GlobalMaxPool1D()(x)
+            x = emb
+            for _ in range(cfg.TEXT_CNN_CONV_NUM):
+                x = self._conv_relu_maxpool(x, filter_size)
             concat_x.append(x)
 
         x = concatenate(concat_x)
 
-        x = Dropout(0.3)(x)
+        x = Dropout(0.5)(x)
         x = Dense(5, activation=self.last_act)(x)  # softmax
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
         return model
+
+    def _conv_relu_maxpool(self, inp, filter_size):
+        x = Conv1D(128, filter_size, activation='relu')(inp)
+        x = GlobalMaxPool1D()(x)
+        return x
 
     def _get_bst_model_path(self):
         return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}.h5".format(
@@ -45,9 +52,10 @@ class TextCNNMultiKernel(TextModel):
 
 
 class TextCNNMultiKernelBN(TextModel):
+    """目前该model只支持一个inputs"""
 
     def __init__(self, **kwargs):
-        self.filters = [2, 3, 4]
+        self.filters = cfg.TEXT_CNN_filters
         super(TextCNNMultiKernelBN, self).__init__(**kwargs)
 
     def get_model(self):
@@ -56,10 +64,11 @@ class TextCNNMultiKernelBN(TextModel):
                                   use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
 
         concat_x = []
+        assert cfg.TEXT_CNN_CONV_NUM > 0
         for filter_size in self.filters:
-            x = Conv1D(128, filter_size)(emb)
-            x = BatchNormalization()(x)
-            x = GlobalMaxPool1D()(x)
+            x = emb
+            for _ in range(cfg.TEXT_CNN_CONV_NUM):
+                x = self._conv_bn_relu_maxpool(x, filter_size)
             concat_x.append(x)
 
         x = concatenate(concat_x)
@@ -67,15 +76,23 @@ class TextCNNMultiKernelBN(TextModel):
         x = Dense(128)(x)
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
-
         x = Dense(5, activation=self.last_act)(x)  # softmax
+
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
         return model
 
+    def _conv_bn_relu_maxpool(self, inp, filter_size):
+        x = Conv1D(128, filter_size)(inp)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = GlobalMaxPool1D()(x)
+        return x
+
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}.h5".format(
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}_{cn}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
-            time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable)
+            time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable),
+            cn=cfg.TEXT_CNN_CONV_NUM
         )

@@ -35,7 +35,7 @@ class TextCNN(TextModel):
                                       use_pretrained=self.use_pretrained, trainable=self.trainable)(inp)
             x = Conv1D(128, self.filter_window, activation='relu')(emb)
             x = GlobalMaxPool1D()(x)
-            x = Dropout(0.3)(x)
+            # x = Dropout(0.3)(x)
             outputs.append(x)
             inputs.append(inp)
         output = concatenate(outputs) if num >= 2 else outputs[0]

@@ -6,7 +6,7 @@ from keras.layers import *
 from keras.models import Model
 sys.path.append("../")
 
-from data_process import get_embedding_layer
+from data_process import cfg, get_embedding_layer
 from base_model import TextModel
 from metric import tensor_yun_loss
 
@@ -16,9 +16,10 @@ class BiLSTM(TextModel):
     def get_model(self):
         inputs, x = self._get_multi_input(self.inputs_num)
 
-        x = Dense(64, activation='relu')(x)
-        # x = Dropout(0.2)(x)
+        x = Dense(64)(x)
         x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        # x = Dropout(0.2)(x)
         x = Dense(5, activation=self.last_act)(x)
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
@@ -31,7 +32,7 @@ class BiLSTM(TextModel):
             inp = Input(shape=(self.max_len,))
             emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
                                       use_pretrained=self.use_pretrained, trainable=self.trainable)(inp)
-            x = Bidirectional(LSTM(50, return_sequences=True))(emb)
+            x = Bidirectional(LSTM(cfg.LSTM_hidden_size, return_sequences=True))(emb)
             x = GlobalMaxPool1D()(x)
             outputs.append(x)
             inputs.append(inp)

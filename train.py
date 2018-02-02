@@ -40,6 +40,7 @@ def main():
     _module = importlib.import_module(module_name)
     cls = _module.__dict__.get(cls_name)
 
+    print("Configure:", FLAGS)
     model = cls(data=data, nb_epoch=FLAGS.nb_epoch, max_len=FLAGS.max_len, embed_size=FLAGS.embed_size,
                 last_act=FLAGS.last_act, batch_size=FLAGS.batch_size, optimizer=FLAGS.optimizer,
                 use_pretrained=FLAGS.use_pretrained, trainable=FLAGS.trainable, filter_window=FLAGS.conv_kernel,

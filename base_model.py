@@ -105,9 +105,13 @@ class TextModel(object):
         model.summary()
 
         bst_model_path = self.get_bst_model_path()
-        model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
-        early_stopping = EarlyStopping(monitor='val_loss', patience=20)
-        self.callback_list = [model_checkpoint, early_stopping]
+        if cfg.MODEL_FIT_validation_split > 0:
+            model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
+            early_stopping = EarlyStopping(monitor='val_loss', patience=20)
+            self.callback_list.append(early_stopping)
+        else:
+            model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=False, save_weights_only=True)
+        self.callback_list.append(model_checkpoint)
         self._model_fit(model)
         print("model train finish: ", bst_model_path, "at time: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 

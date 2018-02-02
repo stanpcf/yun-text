@@ -14,4 +14,9 @@ class cfg:
 
     MODEL_FIT_validation_split = 0.1            # model.fit, keras
 
-    TRAIN_TEST_SPLIT_random_state = 123         # train_test_split,  sklearn
+    TRAIN_TEST_SPLIT_random_state = None         # train_test_split,  sklearn
+
+    TEXT_CNN_filters = [2, 3, 4]    # text cnn 多卷积通道的卷积核大小
+    TEXT_CNN_CONV_NUM = 1           # text cnn 的多通道卷积的深度
+
+    LSTM_hidden_size = 128
