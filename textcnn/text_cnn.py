@@ -46,7 +46,7 @@ class TextCNN(TextModel):
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind=self.filter_window,
             time=self.time, mwl=self.min_word_len, inp_num=self.inputs_num,
-            upt=int(self.use_pretrained), tn=int(self.trainable), ser=self.data.serial
+            upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial)
         )
 
 
@@ -89,5 +89,5 @@ class TextCNNBN(TextModel):
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind=self.filter_window,
             time=self.time, mwl=self.min_word_len, inp_num=self.inputs_num,
-            upt=int(self.use_pretrained), tn=int(self.trainable), ser=self.data.serial
+            upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial)
         )

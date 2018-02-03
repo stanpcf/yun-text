@@ -48,7 +48,7 @@ class TextCNNMultiKernel(TextModel):
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
             time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable),
-            cn=cfg.TEXT_CNN_CONV_NUM, ser=self.data.serial
+            cn=cfg.TEXT_CNN_CONV_NUM, ser=int(self.data.serial)
         )
 
 
@@ -95,5 +95,5 @@ class TextCNNMultiKernelBN(TextModel):
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
             time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable),
-            cn=cfg.TEXT_CNN_CONV_NUM, ser=self.data.serial
+            cn=cfg.TEXT_CNN_CONV_NUM, ser=int(self.data.serial)
         )
