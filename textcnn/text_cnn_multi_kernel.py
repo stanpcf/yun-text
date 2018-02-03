@@ -44,10 +44,11 @@ class TextCNNMultiKernel(TextModel):
         return x
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}.h5".format(
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}_ser-{ser}_{cn}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
-            time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable)
+            time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable),
+            cn=cfg.TEXT_CNN_CONV_NUM, ser=self.data.serial
         )
 
 
@@ -90,9 +91,9 @@ class TextCNNMultiKernelBN(TextModel):
         return x
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}_{cn}.h5".format(
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}_ser-{ser}_{cn}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
             time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable),
-            cn=cfg.TEXT_CNN_CONV_NUM
+            cn=cfg.TEXT_CNN_CONV_NUM, ser=self.data.serial
         )

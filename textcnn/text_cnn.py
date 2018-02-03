@@ -42,11 +42,11 @@ class TextCNN(TextModel):
         return inputs, output
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_{inp_num}_upt-{upt}_tn-{tn}.h5".format(
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind=self.filter_window,
             time=self.time, mwl=self.min_word_len, inp_num=self.inputs_num,
-            upt=int(self.use_pretrained), tn=int(self.trainable)
+            upt=int(self.use_pretrained), tn=int(self.trainable), ser=self.data.serial
         )
 
 
@@ -85,9 +85,9 @@ class TextCNNBN(TextModel):
         return inputs, output
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_{inp_num}_upt-{upt}_tn-{tn}.h5".format(
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind=self.filter_window,
             time=self.time, mwl=self.min_word_len, inp_num=self.inputs_num,
-            upt=int(self.use_pretrained), tn=int(self.trainable)
+            upt=int(self.use_pretrained), tn=int(self.trainable), ser=self.data.serial
         )

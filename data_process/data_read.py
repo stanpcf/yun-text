@@ -19,7 +19,7 @@ data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 
 
 def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls_weight=False, min_word_len=1,
-             cut_tool='all'):
+             cut_tool='all', serial=False):
     """
     :param train_size:
     :param max_len: 给每个句子设定的长度，多截少填
@@ -29,8 +29,9 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
     :param min_word_len: 设置单词的最小长度.
     :param cut_tool: str. 分词工具,如果是多个分词工具, 则下划线连接。 可选[fool, jieba, pynlpir, thulac].
                           为all的时候则是返回所有的分词工具所分的词
+    :param serial: 是否将数据串行
     :return: EasyDict实例.
-        key的结构为
+        并行的key的结构为
             sent: 该key下面的key是可选的
                 fool: x_train, x_valid, x_test
                 jieba: x_train, x_valid, x_test
@@ -42,6 +43,9 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
             valid_id
             test_id
             tokenizer
+            serial
+        串行的key的结构为
+            x_train, y_train, sample_weights, x_valid, y_valid, valid_id, x_test, test_id, tokenizer, serial
     """
     all = ['fool', 'jieba', 'pynlpir', 'thulac']
     if cut_tool != 'all':
@@ -93,9 +97,9 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
     else:
         tokenizer = None
         for tool in ctp:
-            x_train = x_train_mul[tool].tolist()
-            x_valid = x_valid_mul[tool].tolist()
-            x_test = x_test_mul[tool].tolist()
+            x_train = x_train_mul[tool]
+            x_valid = x_valid_mul[tool]
+            x_test = x_test_mul[tool]
             result_sentence[tool] = {'x_train': x_train, 'x_valid': x_valid, 'x_test': x_test}
 
     if one_hot:
@@ -108,8 +112,23 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
         sample_weights = weights[index]
     else:
         sample_weights = np.ones(dtrain['Score'].shape[0])
-    result = EasyDict({"sent": result_sentence, 'y_train': y_train, 'sample_weights': sample_weights,
-                       'y_valid': y_valid, 'valid_id': dvalid['Id'], 'test_id': test["Id"], 'tokenizer': tokenizer})
+
+    if not serial:
+        result = EasyDict({"sent": result_sentence, 'y_train': y_train, 'sample_weights': sample_weights,
+                           'y_valid': y_valid, 'valid_id': dvalid['Id'], 'test_id': test["Id"],
+                           'tokenizer': tokenizer, 'serial': serial})
+    else:
+        print("x_train:", result_sentence['fool']['x_train'].shape)
+        print("y_train:", y_train.shape)
+        _x_train = np.vstack([result_sentence[tool]['x_train'] for tool in ctp])
+        _y_train = np.vstack([y_train] * len(ctp))
+        _sample_weights = np.hstack([sample_weights] * len(ctp))        # 这个地方使用hstack, 因为sample_weights.shape=(80000,)
+        _x_valid = result_sentence[tool]['x_valid']     # 这儿不需要在for里面
+        _x_test = result_sentence[tool]['x_test']
+        result = EasyDict({"x_train": _x_train, "y_train": _y_train, 'sample_weights': _sample_weights,
+                           "x_valid": _x_valid, 'y_valid': y_valid, 'valid_id': dvalid['Id'],
+                           "x_test": _x_test, 'test_id': test["Id"],
+                           'tokenizer': tokenizer, 'serial': serial})
     return result
 
 
@@ -125,8 +144,10 @@ def _filter_words(sentences, min_word_len=1):
 
 
 if __name__ == '__main__':
-    data = get_data(min_word_len=1, set_cls_weight=True, cut_tool='fool')
+    data = get_data(min_word_len=1, set_cls_weight=True, cut_tool="all", serial=True)
     print(data.keys())
-    print(data.sent.keys())
-    print(data.sent.fool.keys())
-    print(data.sent.fool.x_train[10])
+    print(data.x_train.shape)
+    print(data.y_train.shape)
+    print(data.sample_weights.shape)
+    print(len(data.x_valid))
+    print(data.x_valid.shape)

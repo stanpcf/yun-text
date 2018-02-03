@@ -26,13 +26,14 @@ flags.DEFINE_integer("min_word_len", 1, "filter words whose length < min_word_le
 flags.DEFINE_string("cut_tool", 'fool',
                     "use the cut tool's split as input. optional cut tool has fool_jieba_pynlpir_thulac. "
                     "if use some of this, use '_' to connect those. if 'all', use all cut_tools. ")
+flags.DEFINE_bool("serial", False, "是否将数据训练数据串行")
 
 FLAGS = flags.FLAGS
 
 
 def main():
     data = get_data(train_size=FLAGS.train_size, max_len=FLAGS.max_len, set_cls_weight=FLAGS.set_cls_weight,
-                    min_word_len=FLAGS.min_word_len, cut_tool=FLAGS.cut_tool)
+                    min_word_len=FLAGS.min_word_len, cut_tool=FLAGS.cut_tool, serial=FLAGS.serial)
 
     cls_name = FLAGS.classifier
     module_name = ".".join(cls_name.split('.')[:-1])

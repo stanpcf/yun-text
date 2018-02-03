@@ -48,7 +48,7 @@ class TextModel(object):
         self.kwargs = kwargs
 
         self.data = data
-        self.inputs_num = len(self.data.sent)
+        self.inputs_num = len(self.data.sent) if not self.data.serial else 1    # 串行数据切割的增强输入为1
 
     @abstractmethod
     def get_model(self) -> Model:
@@ -98,7 +98,10 @@ class TextModel(object):
         :return list:
         """
         key = "x_" + dtype
-        return [v[key] for v in self.data.sent.values()]
+        if self.data.serial:
+            return self.data[key]
+        else:
+            return [v[key] for v in self.data.sent.values()]
 
     def train(self):
         model = self.get_model()
