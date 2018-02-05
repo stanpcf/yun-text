@@ -11,6 +11,14 @@ import jieba
 import pynlpir
 import thulac
 
+from utils import get_stop_words
+
+stop_words = get_stop_words()
+
+
+def _filter_stop_words(word_list):
+    return [w for w in word_list if w not in stop_words and len(w) > 0]
+
 thu = thulac.thulac(seg_only=True)
 pynlpir.open(encoding_errors='ignore')
 
@@ -29,17 +37,17 @@ thulac_train, thulac_test = [], []
 
 print("process train data")
 for text in tqdm(train["Discuss"].values):
-    jieba_train.append(" ".join(jieba.cut(text)))
-    fool_train.append(" ".join(fool.cut(text)[0]))
-    pynlpir_train.append(" ".join(pynlpir.segment(text, pos_tagging=False)))
-    thulac_train.append(" ".join([_l[0] for _l in thu.cut(text)]))
+    jieba_train.append(" ".join(_filter_stop_words(jieba.cut(text))))
+    fool_train.append(" ".join(_filter_stop_words(fool.cut(text)[0])))
+    pynlpir_train.append(" ".join(_filter_stop_words(pynlpir.segment(text, pos_tagging=False))))
+    thulac_train.append(" ".join(_filter_stop_words([_l[0] for _l in thu.cut(text)])))
 
 print("process test data")
 for text in tqdm(test["Discuss"].values):
-    jieba_test.append(" ".join(jieba.cut(text)))
-    fool_test.append(" ".join(fool.cut(text)[0]))
-    pynlpir_test.append(" ".join(pynlpir.segment(text, pos_tagging=False)))
-    thulac_test.append(" ".join([_l[0] for _l in thu.cut(text)]))
+    jieba_test.append(" ".join(_filter_stop_words(jieba.cut(text))))
+    fool_test.append(" ".join(_filter_stop_words(fool.cut(text)[0])))
+    pynlpir_test.append(" ".join(_filter_stop_words(pynlpir.segment(text, pos_tagging=False))))
+    thulac_test.append(" ".join(_filter_stop_words([_l[0] for _l in thu.cut(text)])))
 
 train['fool'] = fool_train
 train['jieba'] = jieba_train

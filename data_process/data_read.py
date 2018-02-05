@@ -81,6 +81,8 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
         corpus = []
         for tn in tmp_raw.values():
             corpus.extend(tn[0])
+            corpus.extend(tn[1])
+            corpus.extend(tn[2])
         tokenizer = Tokenizer(num_words=cfg.MAX_FEATURE)
         tokenizer.fit_on_texts(corpus)
 
@@ -90,9 +92,9 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
             x_valid = tokenizer.texts_to_sequences(tn[1])
             x_test = tokenizer.texts_to_sequences(tn[2])
 
-            x_train = pad_sequences(x_train, maxlen=max_len)
-            x_valid = pad_sequences(x_valid, maxlen=max_len)
-            x_test = pad_sequences(x_test, maxlen=max_len)
+            x_train = pad_sequences(x_train, maxlen=max_len, padding=cfg.Keras_padding)
+            x_valid = pad_sequences(x_valid, maxlen=max_len, padding=cfg.Keras_padding)
+            x_test = pad_sequences(x_test, maxlen=max_len, padding=cfg.Keras_padding)
             result_sentence[tool] = {'x_train': x_train, 'x_valid': x_valid, 'x_test': x_test}
     else:
         tokenizer = None

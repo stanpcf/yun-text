@@ -33,7 +33,9 @@ def train():
     corpus = []
     for df in [train, test]:
         for col in columns:
-            v = df[col].apply(lambda x: [w for w in x.split(" ") if w not in stop_words]).values.tolist()
+            ser = df[col]
+            ser = ser[ser.isnull() == False]  # 因为样本中有NAN
+            v = ser.apply(lambda x: [w for w in x.split(" ") if w not in stop_words]).values.tolist()
             corpus.extend(v)
 
     model = Word2Vec(corpus, size=FLAGS.hidden_dim, window=FLAGS.window, min_count=len(columns) * FLAGS.min_count,
