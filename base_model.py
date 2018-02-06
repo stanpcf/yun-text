@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
 import pandas as pd
-from keras.models import Model, load_model, save_model
+from keras.models import Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import Layer
 from keras import initializers, regularizers, constraints
@@ -20,7 +20,8 @@ class TextModel(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, *, data, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640,
-                 optimizer='adam', use_pretrained=False, trainable=True, min_word_len=2, num_class=5, **kwargs):
+                 optimizer='adam', use_pretrained=False, trainable=True, min_word_len=2, num_class=5, one_hot=True,
+                 **kwargs):
         """
         :param data: data_process.get_data返回的对象
         :param nb_epoch: 迭代次数
@@ -47,6 +48,7 @@ class TextModel(object):
         self.time = datetime.now().strftime('%y%m%d%H%M%S')
         self.callback_list = []
         self.num_class = num_class
+        self.one_hot = one_hot
         self.kwargs = kwargs
 
         self.data = data
@@ -61,19 +63,6 @@ class TextModel(object):
     def _get_bst_model_path(self) -> str:
         """return a name which is used for save trained weights"""
         raise NotImplementedError
-    #
-    # @abstractmethod
-    # def _model_fit(self, model: Model):
-    #     """fit the model use data"""
-    #     raise NotImplementedError
-    #
-    # @abstractmethod
-    # def _model_predict(self, model: Model, dtype: str):
-    #     """
-    #     predict the data according to dtype. and return the predict
-    #     dtype: test, valid
-    #     """
-    #     raise NotImplementedError
 
     def _model_fit(self, model: Model):
         x_train = self._get_data("train")
@@ -84,13 +73,17 @@ class TextModel(object):
     def _model_predict(self, model: Model, dtype: str, return_prob=False):
         x = self._get_data(dtype)
         _prob = model.predict(x)
-        y = _prob.argmax(axis=1)
-        if self.num_class == 5:
-            y = y + 1
-        if return_prob:
-            return y, _prob
+        if self.one_hot:
+            y = _prob.argmax(axis=1)
+            if self.num_class == 5:
+                y = y + 1
+            if return_prob:
+                return y, _prob
+            else:
+                return y
         else:
-            return y
+            _prob = _prob.reshape(-1)
+            return _prob, None
 
     def get_bst_model_path(self):
         dirname = self._get_model_path()
@@ -133,12 +126,16 @@ class TextModel(object):
         if predict_offline:
             valid_pred, valid_prob = self._model_predict(model, 'valid', return_prob=True)
             self._save_to_csv(self.data.valid_id, valid_pred, bst_model_path, valid_data=True)
-            self._save_prob_to_csv(self.data.valid_id, valid_prob, bst_model_path, valid_data=True)
-            _y_valid = self.data.y_valid.argmax(axis=1) + 1
+            if self.one_hot:
+                self._save_prob_to_csv(self.data.valid_id, valid_prob, bst_model_path, valid_data=True)
+                _y_valid = self.data.y_valid.argmax(axis=1) + 1
+            else:
+                _y_valid = self.data.y_valid
             print("valid yun metric:", yun_metric(_y_valid, valid_pred))
         y_test, test_prob = self._model_predict(model, 'test', return_prob=True)
         self._save_to_csv(self.data.test_id, y_test, bst_model_path, valid_data=False)
-        self._save_prob_to_csv(self.data.test_id, test_prob, bst_model_path, valid_data=True)
+        if self.one_hot:
+            self._save_prob_to_csv(self.data.test_id, test_prob, bst_model_path, valid_data=True)
 
     def _save_prob_to_csv(self, ids, prob, path, valid_data=False):
         assert len(ids) == len(prob)

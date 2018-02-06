@@ -148,7 +148,10 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
                            'tokenizer': tokenizer, 'serial': serial})
     else:
         _x_train = np.vstack([result_sentence[tool]['x_train'] for tool in ctp])
-        _y_train = np.vstack([y_train] * len(ctp))
+        if one_hot:
+            _y_train = np.vstack([y_train] * len(ctp))
+        else:
+            _y_train = np.hstack([y_train] * len(ctp))
         _sample_weights = np.hstack([sample_weights] * len(ctp))        # 这个地方使用hstack, 因为sample_weights.shape=(80000,)
         _x_valid = result_sentence[tool]['x_valid']     # 这儿不需要在for里面
         _x_test = result_sentence[tool]['x_test']
@@ -171,7 +174,7 @@ def _filter_words(sentences, min_word_len=1):
 
 
 if __name__ == '__main__':
-    data = get_data(min_word_len=1, set_cls_weight=True, cut_tool="all", serial=True)
+    data = get_data(min_word_len=1, set_cls_weight=False, cut_tool="fool", serial=True, one_hot=False)
     print(data.keys())
     print(data.x_train.shape)
     print(data.y_train.shape)

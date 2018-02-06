@@ -20,7 +20,10 @@ class BiLSTM(TextModel):
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
         # x = Dropout(0.2)(x)
-        x = Dense(self.num_class, activation=self.last_act)(x)
+        if self.one_hot:
+            x = Dense(self.num_class, activation=self.last_act)(x)  # softmax
+        else:
+            x = Dense(1, activation='linear')(x)
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
         return model
@@ -40,8 +43,8 @@ class BiLSTM(TextModel):
         return inputs, output
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}_cls-{cls}.h5".format(
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{mwl}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}_cls-{cls}_reg-{reg}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, inp_num=self.inputs_num,
             embed=self.embed_size, max_len=self.max_len, time=self.time, mwl=self.min_word_len, cls=self.num_class,
-            upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial)
+            upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial), reg=int(not self.one_hot)
         )
