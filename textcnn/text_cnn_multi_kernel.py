@@ -33,7 +33,7 @@ class TextCNNMultiKernel(TextModel):
         x = concatenate(concat_x)
 
         x = Dropout(0.5)(x)
-        x = Dense(5, activation=self.last_act)(x)  # softmax
+        x = Dense(self.num_class, activation=self.last_act)(x)  # softmax
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
         return model
@@ -44,8 +44,8 @@ class TextCNNMultiKernel(TextModel):
         return x
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}_ser-{ser}_{cn}.h5".format(
-            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}_ser-{ser}_{cn}_cls-{cls}.h5".format(
+            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, cls=self.num_class,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
             time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable),
             cn=cfg.TEXT_CNN_CONV_NUM, ser=int(self.data.serial)
@@ -77,7 +77,7 @@ class TextCNNMultiKernelBN(TextModel):
         x = Dense(128)(x)
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
-        x = Dense(5, activation=self.last_act)(x)  # softmax
+        x = Dense(self.num_class, activation=self.last_act)(x)  # softmax
 
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
@@ -91,8 +91,8 @@ class TextCNNMultiKernelBN(TextModel):
         return x
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}_ser-{ser}_{cn}.h5".format(
-            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_upt-{upt}_tn-{tn}_ser-{ser}_{cn}_cls-{cls}.h5".format(
+            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, cls=self.num_class,
             embed=self.embed_size, max_len=self.max_len, wind="-".join([str(s) for s in self.filters]),
             time=self.time, mwl=self.min_word_len, upt=int(self.use_pretrained), tn=int(self.trainable),
             cn=cfg.TEXT_CNN_CONV_NUM, ser=int(self.data.serial)

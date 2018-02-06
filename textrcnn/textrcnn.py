@@ -29,15 +29,15 @@ class TextRCNN(TextModel):
 
         x = Dense(128, activation='relu')(x)
         x = Dropout(0.3)(x)
-        x = Dense(5, activation=self.last_act)(x)  # softmax
+        x = Dense(self.num_class, activation=self.last_act)(x)  # softmax
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
         return model
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}.h5".format(
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{mwl}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}_cls-{cls}.h5".format(
             pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
             embed=self.embed_size, max_len=self.max_len, wind=self.filter_window,
-            time=self.time, mwl=self.min_word_len, inp_num=self.inputs_num,
+            time=self.time, mwl=self.min_word_len, inp_num=self.inputs_num, cls=self.num_class,
             upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial)
         )

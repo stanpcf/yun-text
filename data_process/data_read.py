@@ -19,7 +19,7 @@ data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 
 
 def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls_weight=False, min_word_len=1,
-             cut_tool='all', serial=False):
+             cut_tool='all', serial=False, cls_weights_str=None, num_class=5):
     """
     :param train_size:
     :param max_len: 给每个句子设定的长度，多截少填
@@ -30,6 +30,8 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
     :param cut_tool: str. 分词工具,如果是多个分词工具, 则下划线连接。 可选[fool, jieba, pynlpir, thulac].
                           为all的时候则是返回所有的分词工具所分的词
     :param serial: 是否将数据串行
+    :param cls_weights_str: 权重字符串
+    :param num_class:
     :return: EasyDict实例.
         并行的key的结构为
             sent: 该key下面的key是可选的
@@ -55,18 +57,37 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
     else:
         ctp = all
 
+    if not cls_weights_str:
+        class_weights = [100, 60, 6, 2, 1]
+    else:
+        class_weights = [float(i) for i in cls_weights_str.split("_")]
+        assert len(class_weights) == 5
+
+    if num_class == 6:
+        class_weights = [0] + class_weights
+
     fill_value = "CSFxe"
     train = pd.read_csv(os.path.join(data_dir, "processed", "train_first.csv"))
     test = pd.read_csv(os.path.join(data_dir, "processed", "predict_first.csv"))
     train["Discuss"].fillna(value=fill_value, inplace=True)
-    train[ctp].fillna(value=fill_value.lower(), inplace=True)
     test["Discuss"].fillna(value=fill_value, inplace=True)
-    test[ctp].fillna(value=fill_value.lower(), inplace=True)
+    for tool in ctp:
+        train[tool].fillna(value=fill_value.lower(), inplace=True)
+        test[tool].fillna(value=fill_value.lower(), inplace=True)
 
     dtrain, dvalid = train_test_split(train, random_state=cfg.TRAIN_TEST_SPLIT_random_state, train_size=train_size)
-    x_train_mul, y_train = dtrain[ctp], dtrain["Score"].values - 1
-    x_valid_mul, y_valid = dvalid[ctp], dvalid["Score"].values - 1
+    x_train_mul = dtrain[ctp]
+    x_valid_mul = dvalid[ctp]
     x_test_mul = test[ctp]
+
+    if num_class == 5:
+        y_train = dtrain["Score"].values - 1
+        y_valid = dvalid["Score"].values - 1
+    elif num_class == 6:
+        y_train = dtrain["Score"].values
+        y_valid = dvalid["Score"].values
+    else:
+        raise Exception
 
     result_sentence = OrderedDict()
     if not return_raw:
@@ -109,8 +130,14 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
         y_valid = to_categorical(y_valid)
 
     if set_cls_weight:
-        weights = np.array(cfg.SAMPLE_WEIGHT)   # 样本的权重, 索引代表类别, 索引位置的值代表该类别权重 [0, 100, 60, 6, 2, 1]
-        index = dtrain['Score'].values - 1
+        weights = np.array(class_weights)
+        if num_class == 5:
+            index = dtrain['Score'].values - 1
+        elif num_class == 6:
+            index = dtrain['Score'].values
+        else:
+            raise Exception
+        print("Class weights: ", weights)
         sample_weights = weights[index]
     else:
         sample_weights = np.ones(dtrain['Score'].shape[0])
@@ -120,8 +147,6 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
                            'y_valid': y_valid, 'valid_id': dvalid['Id'], 'test_id': test["Id"],
                            'tokenizer': tokenizer, 'serial': serial})
     else:
-        print("x_train:", result_sentence['fool']['x_train'].shape)
-        print("y_train:", y_train.shape)
         _x_train = np.vstack([result_sentence[tool]['x_train'] for tool in ctp])
         _y_train = np.vstack([y_train] * len(ctp))
         _sample_weights = np.hstack([sample_weights] * len(ctp))        # 这个地方使用hstack, 因为sample_weights.shape=(80000,)

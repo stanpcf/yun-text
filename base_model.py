@@ -20,7 +20,7 @@ class TextModel(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, *, data, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640,
-                 optimizer='adam', use_pretrained=False, trainable=True, min_word_len=2, **kwargs):
+                 optimizer='adam', use_pretrained=False, trainable=True, min_word_len=2, num_class=5, **kwargs):
         """
         :param data: data_process.get_data返回的对象
         :param nb_epoch: 迭代次数
@@ -32,6 +32,7 @@ class TextModel(object):
         :param use_pretrained: 是否嵌入层使用预训练的模型
         :param trainable: 是否嵌入层可训练, 该参数只有在use_pretrained为真时有用
         :param min_word_len: 同data_process/get_data的min_word_len存储信息一样. 用于生成weight_path
+        :param num_class:
         :param kwargs
         """
         self.nb_epoch = nb_epoch
@@ -43,8 +44,9 @@ class TextModel(object):
         self.use_pretrained = use_pretrained
         self.trainable = trainable
         self.min_word_len = min_word_len
-        self.time = datetime.now().strftime('%Y%m%d%H')
+        self.time = datetime.now().strftime('%y%m%d%H%M%S')
         self.callback_list = []
+        self.num_class = num_class
         self.kwargs = kwargs
 
         self.data = data
@@ -79,12 +81,16 @@ class TextModel(object):
                   validation_split=cfg.MODEL_FIT_validation_split, callbacks=self.callback_list,
                   sample_weight=self.data.sample_weights)
 
-    def _model_predict(self, model: Model, dtype: str):
+    def _model_predict(self, model: Model, dtype: str, return_prob=False):
         x = self._get_data(dtype)
-        _y = model.predict(x)
-        y = _y.argmax(axis=1)
-        y = y + 1
-        return y
+        _prob = model.predict(x)
+        y = _prob.argmax(axis=1)
+        if self.num_class == 5:
+            y = y + 1
+        if return_prob:
+            return y, _prob
+        else:
+            return y
 
     def get_bst_model_path(self):
         dirname = self._get_model_path()
@@ -125,12 +131,31 @@ class TextModel(object):
         model = self.get_model()
         model.load_weights(bst_model_path)
         if predict_offline:
-            valid_pred = self._model_predict(model, 'valid')
+            valid_pred, valid_prob = self._model_predict(model, 'valid', return_prob=True)
             self._save_to_csv(self.data.valid_id, valid_pred, bst_model_path, valid_data=True)
+            self._save_prob_to_csv(self.data.valid_id, valid_prob, bst_model_path, valid_data=True)
             _y_valid = self.data.y_valid.argmax(axis=1) + 1
             print("valid yun metric:", yun_metric(_y_valid, valid_pred))
-        y_test = self._model_predict(model, 'test')
+        y_test, test_prob = self._model_predict(model, 'test', return_prob=True)
         self._save_to_csv(self.data.test_id, y_test, bst_model_path, valid_data=False)
+        self._save_prob_to_csv(self.data.test_id, test_prob, bst_model_path, valid_data=True)
+
+    def _save_prob_to_csv(self, ids, prob, path, valid_data=False):
+        assert len(ids) == len(prob)
+        if self.num_class == 5:
+            cols = ['prob_'+str(i) for i in range(1, 6)]
+        else:
+            cols = ['prob_'+str(i) for i in range(0, 6)]
+        sample_prob = pd.DataFrame(prob, columns=cols)
+        sample_prob['Id'] = ids
+        sample_prob = sample_prob[['Id']+cols]
+        _list = self._get_result_path(path).split("/")
+        if not valid_data:
+            _tmp = _list[:-1] + ["prob_"+_list[-1]]
+        else:
+            _tmp = _list[:-1] + ["prob_valid_"+_list[-1]]
+        prob_path = "/".join(_tmp)
+        sample_prob.to_csv(prob_path, index=False)
 
     def _save_to_csv(self, ids, scores, path, valid_data=False):
         assert len(ids) == len(scores)
