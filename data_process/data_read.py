@@ -18,7 +18,7 @@ except ModuleNotFoundError as e:
 data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "input")
 
 
-def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls_weight=False, min_word_len=1,
+def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls_weight=False,
              cut_tool='all', serial=False, cls_weights_str=None, num_class=5):
     """
     :param train_size:
@@ -26,7 +26,6 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
     :param one_hot: 对label进行one-hot编码
     :param return_raw: False则返回tokenizer之后的编码数据. True则返回未编码的数据
     :param set_cls_weight: 是否对训练数据设置权重。
-    :param min_word_len: 设置单词的最小长度.
     :param cut_tool: str. 分词工具,如果是多个分词工具, 则下划线连接。 可选[fool, jieba, pynlpir, thulac].
                           为all的时候则是返回所有的分词工具所分的词
     :param serial: 是否将数据串行
@@ -80,22 +79,26 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
     x_valid_mul = dvalid[ctp]
     x_test_mul = test[ctp]
 
-    if num_class == 5:
-        y_train = dtrain["Score"].values - 1
-        y_valid = dvalid["Score"].values - 1
-    elif num_class == 6:
+    if one_hot:
+        if num_class == 5:
+            y_train = dtrain["Score"].values - 1
+            y_valid = dvalid["Score"].values - 1
+        elif num_class == 6:
+            y_train = dtrain["Score"].values
+            y_valid = dvalid["Score"].values
+        else:
+            raise Exception
+    else:
         y_train = dtrain["Score"].values
         y_valid = dvalid["Score"].values
-    else:
-        raise Exception
 
     result_sentence = OrderedDict()
     if not return_raw:
         tmp_raw = {}
         for tool in ctp:
-            x_train = _filter_words(x_train_mul[tool], min_word_len)
-            x_valid = _filter_words(x_valid_mul[tool], min_word_len)
-            x_test = _filter_words(x_test_mul[tool], min_word_len)
+            x_train = x_train_mul[tool]
+            x_valid = x_valid_mul[tool]
+            x_test = x_test_mul[tool]
 
             tmp_raw[tool] = (x_train, x_valid, x_test)
 
@@ -144,7 +147,7 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
 
     if not serial:
         result = EasyDict({"sent": result_sentence, 'y_train': y_train, 'sample_weights': sample_weights,
-                           'y_valid': y_valid, 'valid_id': dvalid['Id'], 'test_id': test["Id"],
+                           'y_valid': y_valid, 'valid_id': dvalid['Id'].values, 'test_id': test["Id"].values,
                            'tokenizer': tokenizer, 'serial': serial})
     else:
         _x_train = np.vstack([result_sentence[tool]['x_train'] for tool in ctp])
@@ -156,25 +159,14 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
         _x_valid = result_sentence[tool]['x_valid']     # 这儿不需要在for里面
         _x_test = result_sentence[tool]['x_test']
         result = EasyDict({"x_train": _x_train, "y_train": _y_train, 'sample_weights': _sample_weights,
-                           "x_valid": _x_valid, 'y_valid': y_valid, 'valid_id': dvalid['Id'],
-                           "x_test": _x_test, 'test_id': test["Id"],
+                           "x_valid": _x_valid, 'y_valid': y_valid, 'valid_id': dvalid['Id'].values,
+                           "x_test": _x_test, 'test_id': test["Id"].values,
                            'tokenizer': tokenizer, 'serial': serial})
     return result
 
 
-def _filter_words(sentences, min_word_len=1):
-    if min_word_len == 1:
-        return sentences
-
-    result_sentences = []
-    for sent in sentences:
-        prod = " ".join([w for w in sent.split(" ") if len(w) >= min_word_len])
-        result_sentences.append(prod)
-    return result_sentences
-
-
 if __name__ == '__main__':
-    data = get_data(min_word_len=1, set_cls_weight=False, cut_tool="fool", serial=True, one_hot=False)
+    data = get_data(set_cls_weight=False, cut_tool="fool", serial=True, one_hot=False)
     print(data.keys())
     print(data.x_train.shape)
     print(data.y_train.shape)

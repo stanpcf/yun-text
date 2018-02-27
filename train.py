@@ -23,9 +23,9 @@ flags.DEFINE_integer("num_class", 5, "the number of class for classify")
 flags.DEFINE_float('train_size', 0.8, "the rate of train-valid split for train data set")
 flags.DEFINE_integer('max_len', 80, "regular sentence to a fixed length")
 flags.DEFINE_bool('one_hot', True, "one-hot encode the label")
+flags.DEFINE_bool('sum_prob', False, "是否将网络概率相加")
 flags.DEFINE_bool("set_cls_weight", True, "if set class weights for sample， default true")
 flags.DEFINE_string("cls_weights", "8_8_4_1.4_1", "set class weights for train data")
-flags.DEFINE_integer("min_word_len", 1, "filter words whose length < min_word_len")
 flags.DEFINE_string("cut_tool", 'fool',
                     "use the cut tool's split as input. optional cut tool has fool_jieba_pynlpir_thulac. "
                     "if use some of this, use '_' to connect those. if 'all', use all cut_tools. ")
@@ -36,7 +36,7 @@ FLAGS = flags.FLAGS
 
 def main():
     data = get_data(train_size=FLAGS.train_size, max_len=FLAGS.max_len, set_cls_weight=FLAGS.set_cls_weight,
-                    min_word_len=FLAGS.min_word_len, cut_tool=FLAGS.cut_tool, serial=FLAGS.serial,
+                    cut_tool=FLAGS.cut_tool, serial=FLAGS.serial,
                     cls_weights_str=FLAGS.cls_weights, num_class=FLAGS.num_class, one_hot=FLAGS.one_hot)
 
     cls_name = FLAGS.classifier
@@ -48,7 +48,8 @@ def main():
     model = cls(data=data, nb_epoch=FLAGS.nb_epoch, max_len=FLAGS.max_len, embed_size=FLAGS.embed_size,
                 last_act=FLAGS.last_act, batch_size=FLAGS.batch_size, optimizer=FLAGS.optimizer,
                 use_pretrained=FLAGS.use_pretrained, trainable=FLAGS.trainable, filter_window=FLAGS.conv_kernel,
-                min_word_len=FLAGS.min_word_len, num_class=FLAGS.num_class, one_hot=FLAGS.one_hot)
+                num_class=FLAGS.num_class, one_hot=FLAGS.one_hot,
+                sum_prob=FLAGS.sum_prob)
 
     model.train()
     model.predict()

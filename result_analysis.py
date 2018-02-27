@@ -32,6 +32,7 @@ def get_result_stat(h5_path):
     test_merge = pd.merge(test_prd, test, how='left', on=['Id'])
     test_merge = test_merge[['Id', 'prd', 'fool', 'Discuss']]
     test_low = test_merge[test_merge.prd <= 3]
-    ResultStat = namedtuple("ResultStat", ["valid_merge", "valid_diff", "test_merge", "test_low"])
-    result = ResultStat(valid_merge=valid_merge, valid_diff=valid_diff, test_merge=test_merge, test_low=test_low)
+    ResultStat = namedtuple("ResultStat", ["valid_merge", "valid_diff", "test_merge", "test_low", "test_prd"])
+    result = ResultStat(valid_merge=valid_merge, valid_diff=valid_diff, test_merge=test_merge, test_low=test_low,
+                        test_prd=test_prd)
     return result

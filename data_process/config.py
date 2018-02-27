@@ -23,3 +23,5 @@ class cfg:
     LSTM_hidden_size = 128
 
     Keras_padding = "post"          # pre,     keras, pad_sequence的方式.
+
+    top_k = 2

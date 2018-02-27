@@ -4,6 +4,7 @@ import os
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 from keras.models import Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -20,7 +21,8 @@ class TextModel(object):
     __metaclass__ = ABCMeta
 
     def __init__(self, *, data, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640,
-                 optimizer='adam', use_pretrained=False, trainable=True, min_word_len=2, num_class=5, one_hot=True,
+                 optimizer='adam', use_pretrained=False, trainable=True, num_class=5, one_hot=True,
+                 sum_prob=False,
                  **kwargs):
         """
         :param data: data_process.get_data返回的对象
@@ -32,8 +34,9 @@ class TextModel(object):
         :param optimizer: 优化器
         :param use_pretrained: 是否嵌入层使用预训练的模型
         :param trainable: 是否嵌入层可训练, 该参数只有在use_pretrained为真时有用
-        :param min_word_len: 同data_process/get_data的min_word_len存储信息一样. 用于生成weight_path
         :param num_class:
+        :param one_hot:
+        :param sum_prob:
         :param kwargs
         """
         self.nb_epoch = nb_epoch
@@ -44,11 +47,11 @@ class TextModel(object):
         self.optimizer = optimizer
         self.use_pretrained = use_pretrained
         self.trainable = trainable
-        self.min_word_len = min_word_len
         self.time = datetime.now().strftime('%y%m%d%H%M%S')
         self.callback_list = []
         self.num_class = num_class
         self.one_hot = one_hot
+        self.sum_prob = sum_prob
         self.kwargs = kwargs
 
         self.data = data
@@ -74,6 +77,9 @@ class TextModel(object):
         x = self._get_data(dtype)
         _prob = model.predict(x)
         if self.one_hot:
+            if self.sum_prob:
+                y = [self.compute_score(pr) for pr in _prob]
+                return np.array(y)
             y = _prob.argmax(axis=1)
             if self.num_class == 5:
                 y = y + 1
@@ -84,6 +90,14 @@ class TextModel(object):
         else:
             _prob = _prob.reshape(-1)
             return _prob, None
+
+    def compute_score(self, prob):
+        index = np.argpartition(prob, -cfg.top_k)[-cfg.top_k:]
+        value = prob[index] / prob[index].sum()   # 归一化
+        score = sum(value * index) + 1.
+        if score > 4.7:
+            return 5.
+        return score
 
     def get_bst_model_path(self):
         dirname = self._get_model_path()
@@ -124,18 +138,22 @@ class TextModel(object):
         model = self.get_model()
         model.load_weights(bst_model_path)
         if predict_offline:
-            valid_pred, valid_prob = self._model_predict(model, 'valid', return_prob=True)
+            # valid_pred, valid_prob = self._model_predict(model, 'valid', return_prob=True)
+            valid_pred = self._model_predict(model, 'valid')
             self._save_to_csv(self.data.valid_id, valid_pred, bst_model_path, valid_data=True)
             if self.one_hot:
-                self._save_prob_to_csv(self.data.valid_id, valid_prob, bst_model_path, valid_data=True)
+                # self._save_prob_to_csv(self.data.valid_id, valid_prob, bst_model_path, valid_data=True)
                 _y_valid = self.data.y_valid.argmax(axis=1) + 1
             else:
+                # 对于回归(非one_hot来说, 在处理数据的时候使用的是1，2，3，4，5). one_hot是(0,1,2,3,4)。所以这个地方处理不同
                 _y_valid = self.data.y_valid
             print("valid yun metric:", yun_metric(_y_valid, valid_pred))
-        y_test, test_prob = self._model_predict(model, 'test', return_prob=True)
+        # y_test, test_prob = self._model_predict(model, 'test', return_prob=True)
+        y_test = self._model_predict(model, 'test')
         self._save_to_csv(self.data.test_id, y_test, bst_model_path, valid_data=False)
         if self.one_hot:
-            self._save_prob_to_csv(self.data.test_id, test_prob, bst_model_path, valid_data=True)
+            # self._save_prob_to_csv(self.data.test_id, test_prob, bst_model_path, valid_data=True)
+            pass
 
     def _save_prob_to_csv(self, ids, prob, path, valid_data=False):
         assert len(ids) == len(prob)
