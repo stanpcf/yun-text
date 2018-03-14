@@ -48,3 +48,41 @@ class BiLSTM(TextModel):
             embed=self.embed_size, max_len=self.max_len, time=self.time, cls=self.num_class,
             upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial), reg=int(not self.one_hot)
         )
+
+
+class BiLSTMCNN(TextModel):
+    """该模型使用多种分词工具之后的切割作为输入"""
+    def get_model(self):
+        inputs, x = self._get_multi_input(self.inputs_num)
+
+        if self.one_hot:
+            x = Dense(self.num_class, activation=self.last_act)(x)  # softmax
+        else:
+            x = Dense(1, activation='linear')(x)
+        model = Model(inputs=inputs, outputs=x)
+        model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
+        return model
+
+    def _get_multi_input(self, num):
+        inputs = []
+        outputs = []
+        for _ in range(num):
+            inp = Input(shape=(self.max_len,))
+            emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
+                                      use_pretrained=self.use_pretrained, trainable=self.trainable)(inp)
+            x = SpatialDropout1D(0.2)(emb)
+            x = Bidirectional(GRU(cfg.LSTM_hidden_size, return_sequences=True))(x)
+            avg_pool = GlobalAveragePooling1D()(x)
+            max_pool = GlobalMaxPooling1D()(x)
+            x = concatenate([avg_pool, max_pool])
+            outputs.append(x)
+            inputs.append(inp)
+        output = concatenate(outputs) if num >= 2 else outputs[0]
+        return inputs, output
+
+    def _get_bst_model_path(self):
+        return "{pre}_{act}_{epo}_{embed}_{max_len}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}_cls-{cls}_reg-{reg}.h5".format(
+            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, inp_num=self.inputs_num,
+            embed=self.embed_size, max_len=self.max_len, time=self.time, cls=self.num_class,
+            upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial), reg=int(not self.one_hot)
+        )

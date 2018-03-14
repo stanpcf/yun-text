@@ -15,13 +15,16 @@ class cfg:
 
     MODEL_FIT_validation_split = 0.1            # model.fit, keras
 
-    TRAIN_TEST_SPLIT_random_state = None         # train_test_split,  sklearn
+    TRAIN_TEST_SPLIT_random_state = 123         # train_test_split,  sklearn
 
-    TEXT_CNN_filters = [2, 3, 4]    # text cnn 多卷积通道的卷积核大小
+    TEXT_CNN_filters = [1, 2, 3, 4, 5]    # text cnn 多卷积通道的卷积核大小
     TEXT_CNN_CONV_NUM = 1           # text cnn 的多通道卷积的深度
 
-    LSTM_hidden_size = 128
+    LSTM_hidden_size = 256
 
     Keras_padding = "post"          # pre,     keras, pad_sequence的方式.
 
     top_k = 2
+
+    enhance_to = [3092, 7223, 12513, 32580, 66030]
+    # enhance_to = [3092, 7223, 12513, 32580, 66030]

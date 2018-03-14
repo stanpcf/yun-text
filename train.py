@@ -26,17 +26,20 @@ flags.DEFINE_bool('one_hot', True, "one-hot encode the label")
 flags.DEFINE_bool('sum_prob', False, "是否将网络概率相加")
 flags.DEFINE_bool("set_cls_weight", True, "if set class weights for sample， default true")
 flags.DEFINE_string("cls_weights", "8_8_4_1.4_1", "set class weights for train data")
-flags.DEFINE_string("cut_tool", 'fool',
+flags.DEFINE_string("cut_tool", 'jieba',
                     "use the cut tool's split as input. optional cut tool has fool_jieba_pynlpir_thulac. "
                     "if use some of this, use '_' to connect those. if 'all', use all cut_tools. ")
 flags.DEFINE_bool("serial", False, "是否将数据训练数据串行")
+flags.DEFINE_bool('enhance', False, "是否数据增强")
 
 FLAGS = flags.FLAGS
+print("one_hot:", FLAGS.one_hot)
+print("sum_prob:", FLAGS.sum_prob)
 
 
 def main():
     data = get_data(train_size=FLAGS.train_size, max_len=FLAGS.max_len, set_cls_weight=FLAGS.set_cls_weight,
-                    cut_tool=FLAGS.cut_tool, serial=FLAGS.serial,
+                    cut_tool=FLAGS.cut_tool, serial=FLAGS.serial, enhance_sent=FLAGS.enhance,
                     cls_weights_str=FLAGS.cls_weights, num_class=FLAGS.num_class, one_hot=FLAGS.one_hot)
 
     cls_name = FLAGS.classifier

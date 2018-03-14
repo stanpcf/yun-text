@@ -19,7 +19,7 @@ data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 
 
 def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls_weight=False,
-             cut_tool='all', serial=False, cls_weights_str=None, num_class=5):
+             cut_tool='all', serial=False, cls_weights_str=None, num_class=5, enhance_sent=False):
     """
     :param train_size:
     :param max_len: 给每个句子设定的长度，多截少填
@@ -31,6 +31,7 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
     :param serial: 是否将数据串行
     :param cls_weights_str: 权重字符串
     :param num_class:
+    :param enhance_sent: 是否做数据增强
     :return: EasyDict实例.
         并行的key的结构为
             sent: 该key下面的key是可选的
@@ -66,7 +67,10 @@ def get_data(train_size=0.8, max_len=80, one_hot=True, return_raw=False, set_cls
         class_weights = [0] + class_weights
 
     fill_value = "CSFxe"
-    train = pd.read_csv(os.path.join(data_dir, "processed", "train_first.csv"))
+    if enhance_sent:
+        train = pd.read_csv(os.path.join(data_dir, "processed", "train_first_enhance.csv"))
+    else:
+        train = pd.read_csv(os.path.join(data_dir, "processed", "train_first.csv"))
     test = pd.read_csv(os.path.join(data_dir, "processed", "predict_first.csv"))
     train["Discuss"].fillna(value=fill_value, inplace=True)
     test["Discuss"].fillna(value=fill_value, inplace=True)

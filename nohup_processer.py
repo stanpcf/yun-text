@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser("log parser")
 parser.add_argument('log_file', help="file need to be processed.", type=str)
 args = parser.parse_args()
 
-flag_set = {'model train finish:', 'valid yun metric:', '---train finish ---', 'Class weights'}
+flag_set = {'model train finish:', 'valid yun metric:', '---train finish ---', 'Class weights', 'one_hot', 'sum_prob'}
 remain_list = []
 with open(args.log_file) as f:
     for line in f:

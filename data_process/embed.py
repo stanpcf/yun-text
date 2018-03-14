@@ -37,6 +37,7 @@ def _get_glove_weights(num_words, word_index, dim):
     :return: embedding 权重
     """
     embeddings_index = {}
+    # filename = "wiki.zh.vec"
     filename = "my_w2v_{dim}_50_{_wind}.txt".format(dim=dim, _wind=cfg.MY_EMBED_WIND)
     filename = os.path.join(W2V_DIR, filename)
     with open(filename) as f:

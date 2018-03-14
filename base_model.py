@@ -89,7 +89,7 @@ class TextModel(object):
                 return y
         else:
             _prob = _prob.reshape(-1)
-            return _prob, None
+            return _prob
 
     def compute_score(self, prob):
         index = np.argpartition(prob, -cfg.top_k)[-cfg.top_k:]
@@ -291,7 +291,6 @@ class Attention(Layer):
 
         a = K.expand_dims(a)
         weighted_input = x * a
-        # print weigthted_input.shape
         return K.sum(weighted_input, axis=1)
 
     def compute_output_shape(self, input_shape):

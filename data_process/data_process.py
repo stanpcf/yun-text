@@ -16,7 +16,7 @@ from utils import get_stop_words
 
 stop_words = get_stop_words()
 fill_value = "CSFxe"
-
+user_dict = './yan_word.txt'
 
 def clean_str(stri):
     stri = re.sub(r'[a-zA-Z0-9]+', '', stri)
@@ -31,8 +31,12 @@ def _filter_stop_words(word_list):
     return x
 
 
-thu = thulac.thulac(seg_only=True)
+thu = thulac.thulac(seg_only=True, user_dict=user_dict)
 pynlpir.open(encoding_errors='ignore')
+
+jieba.load_userdict(user_dict)
+#fool.load_userdict(user_dict)
+#pynlpir.nlpir.AddUserWord(user_dict)
 
 data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "input")
 processed_dir = "processed"
