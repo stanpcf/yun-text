@@ -20,7 +20,7 @@ class AttentionLSTM1(TextModel):
         x = Dense(64, activation='relu')(x)
         x = Dense(1, activation='linear')(x)
         model = Model(inputs=inputs, outputs=x)
-        model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse'])
+        model.compile(loss='mse', optimizer=self.optimizer)
         return model
 
     """

@@ -23,10 +23,7 @@ def get_data(train_size=0.9, max_len=80):
     """
     fill_value = "CSFxe"
     ctp = "jieba"
-    train_a = pd.read_csv(os.path.join(data_dir, "processed", "train_first.csv"))
-    train_b = pd.read_csv(os.path.join(data_dir, "processed", "train_second.csv"))
-    train = pd.concat([train_a, train_b], ignore_index=True)
-
+    train = pd.read_csv(os.path.join(data_dir, "processed", "train_second.csv"))    # 里面包含了初赛的训练数据
     test = pd.read_csv(os.path.join(data_dir, "processed", "predict_first.csv"))
 
     train["Discuss"].fillna(value=fill_value, inplace=True)
@@ -52,7 +49,8 @@ def get_data(train_size=0.9, max_len=80):
 
     data = EasyDict({'x_train': x_train, 'y_train': y_train,
                      'x_valid': x_valid, 'y_valid': y_valid, 'valid_id': dvalid['Id'].values,
-                     'x_test': x_test, 'test_id': test["Id"].values})
+                     'x_test': x_test, 'test_id': test["Id"].values,
+                     'tokenizer': tokenizer})
     return data
 
 

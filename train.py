@@ -16,7 +16,7 @@ flags.DEFINE_bool('use_pretrained', True, "if use pretrained vector for embeddin
 flags.DEFINE_bool('trainable', True,
                   "if the embedding layer is trainable. this param is used only `use_pretrained` is true")
 # data relation
-flags.DEFINE_float('train_size', 0.8, "the rate of train-valid split for train data set")
+flags.DEFINE_float('train_size', 0.9, "the rate of train-valid split for train data set")
 flags.DEFINE_integer('max_len', 80, "regular sentence to a fixed length")
 flags.DEFINE_bool('one_hot', True, "one-hot encode the label")
 
