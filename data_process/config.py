@@ -18,7 +18,6 @@ class cfg:
     TRAIN_TEST_SPLIT_random_state = 123         # train_test_split,  sklearn
 
     TEXT_CNN_filters = [1, 2, 3, 4, 5]    # text cnn 多卷积通道的卷积核大小
-    TEXT_CNN_CONV_NUM = 1           # text cnn 的多通道卷积的深度
 
     LSTM_hidden_size = 256
 

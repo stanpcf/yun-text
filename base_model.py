@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-
 import os
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
-import numpy as np
 import pandas as pd
 from keras.models import Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -20,10 +18,8 @@ class TextModel(object):
     """abstract base model for all text classification model."""
     __metaclass__ = ABCMeta
 
-    def __init__(self, *, data, nb_epoch=50, max_len=100, embed_size=100, last_act='softmax', batch_size=640,
-                 optimizer='adam', use_pretrained=False, trainable=True, num_class=5, one_hot=True,
-                 sum_prob=False,
-                 **kwargs):
+    def __init__(self, *, data, nb_epoch=50, max_len=100, embed_size=100, batch_size=640,
+                 optimizer='adam', use_pretrained=False, trainable=True, **kwargs):
         """
         :param data: data_process.get_data返回的对象
         :param nb_epoch: 迭代次数
@@ -34,28 +30,19 @@ class TextModel(object):
         :param optimizer: 优化器
         :param use_pretrained: 是否嵌入层使用预训练的模型
         :param trainable: 是否嵌入层可训练, 该参数只有在use_pretrained为真时有用
-        :param num_class:
-        :param one_hot:
-        :param sum_prob:
         :param kwargs
         """
         self.nb_epoch = nb_epoch
         self.max_len = max_len
         self.embed_size = embed_size
-        self.last_act = last_act
         self.batch_size = batch_size
         self.optimizer = optimizer
         self.use_pretrained = use_pretrained
         self.trainable = trainable
         self.time = datetime.now().strftime('%y%m%d%H%M%S')
         self.callback_list = []
-        self.num_class = num_class
-        self.one_hot = one_hot
-        self.sum_prob = sum_prob
         self.kwargs = kwargs
-
         self.data = data
-        self.inputs_num = len(self.data.sent) if not self.data.serial else 1    # 串行数据切割的增强输入为1
 
     @abstractmethod
     def get_model(self) -> Model:
@@ -68,53 +55,13 @@ class TextModel(object):
         raise NotImplementedError
 
     def _model_fit(self, model: Model):
-        x_train = self._get_data("train")
-        model.fit(x_train, self.data.y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
-                  validation_split=cfg.MODEL_FIT_validation_split, callbacks=self.callback_list,
-                  sample_weight=self.data.sample_weights)
-
-    def _model_predict(self, model: Model, dtype: str, return_prob=False):
-        x = self._get_data(dtype)
-        _prob = model.predict(x)
-        if self.one_hot:
-            if self.sum_prob:
-                y = [self.compute_score(pr) for pr in _prob]
-                return np.array(y)
-            y = _prob.argmax(axis=1)
-            if self.num_class == 5:
-                y = y + 1
-            if return_prob:
-                return y, _prob
-            else:
-                return y
-        else:
-            _prob = _prob.reshape(-1)
-            return _prob
-
-    def compute_score(self, prob):
-        index = np.argpartition(prob, -cfg.top_k)[-cfg.top_k:]
-        value = prob[index] / prob[index].sum()   # 归一化
-        score = sum(value * index) + 1.
-        if score > 4.7:
-            return 5.
-        return score
+        model.fit(self.data.x_train, self.data.y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
+                  validation_split=cfg.MODEL_FIT_validation_split, callbacks=self.callback_list)
 
     def get_bst_model_path(self):
         dirname = self._get_model_path()
         path = os.path.join(dirname, self._get_bst_model_path())
         return path
-
-    def _get_data(self, dtype='train'):
-        """
-        :param dtype: train, valid, test
-        self.data.sent 是个OrderDict. 保证了每次从里面获取的train, valid, test都是一致的
-        :return list:
-        """
-        key = "x_" + dtype
-        if self.data.serial:
-            return self.data[key]
-        else:
-            return [v[key] for v in self.data.sent.values()]
 
     def train(self):
         model = self.get_model()
@@ -138,39 +85,12 @@ class TextModel(object):
         model = self.get_model()
         model.load_weights(bst_model_path)
         if predict_offline:
-            # valid_pred, valid_prob = self._model_predict(model, 'valid', return_prob=True)
-            valid_pred = self._model_predict(model, 'valid')
+            valid_pred = model.predict(self.data.x_valid)
             self._save_to_csv(self.data.valid_id, valid_pred, bst_model_path, valid_data=True)
-            if self.one_hot:
-                # self._save_prob_to_csv(self.data.valid_id, valid_prob, bst_model_path, valid_data=True)
-                _y_valid = self.data.y_valid.argmax(axis=1) + 1
-            else:
-                # 对于回归(非one_hot来说, 在处理数据的时候使用的是1，2，3，4，5). one_hot是(0,1,2,3,4)。所以这个地方处理不同
-                _y_valid = self.data.y_valid
+            _y_valid = self.data.y_valid
             print("valid yun metric:", yun_metric(_y_valid, valid_pred))
-        # y_test, test_prob = self._model_predict(model, 'test', return_prob=True)
-        y_test = self._model_predict(model, 'test')
+        y_test = model.predict(self.data.x_test)
         self._save_to_csv(self.data.test_id, y_test, bst_model_path, valid_data=False)
-        if self.one_hot:
-            # self._save_prob_to_csv(self.data.test_id, test_prob, bst_model_path, valid_data=True)
-            pass
-
-    def _save_prob_to_csv(self, ids, prob, path, valid_data=False):
-        assert len(ids) == len(prob)
-        if self.num_class == 5:
-            cols = ['prob_'+str(i) for i in range(1, 6)]
-        else:
-            cols = ['prob_'+str(i) for i in range(0, 6)]
-        sample_prob = pd.DataFrame(prob, columns=cols)
-        sample_prob['Id'] = ids
-        sample_prob = sample_prob[['Id']+cols]
-        _list = self._get_result_path(path).split("/")
-        if not valid_data:
-            _tmp = _list[:-1] + ["prob_"+_list[-1]]
-        else:
-            _tmp = _list[:-1] + ["prob_valid_"+_list[-1]]
-        prob_path = "/".join(_tmp)
-        sample_prob.to_csv(prob_path, index=False)
 
     def _save_to_csv(self, ids, scores, path, valid_data=False):
         assert len(ids) == len(scores)

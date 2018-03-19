@@ -8,7 +8,6 @@ sys.path.append("../")
 
 from base_model import TextModel
 from data_process import cfg, get_embedding_layer
-from metric import tensor_yun_loss
 
 
 class TextRCNN(TextModel):
@@ -28,19 +27,15 @@ class TextRCNN(TextModel):
         concat_x = []
         for filter_size in cfg.TEXT_CNN_filters:
             x = reshape
-            for _ in range(cfg.TEXT_CNN_CONV_NUM):
-                x = self._conv_relu_maxpool(x, filter_size)
+            x = self._conv_relu_maxpool(x, filter_size)
             concat_x.append(x)
 
         x = concatenate(concat_x, axis=1)
         x = Flatten()(x)
         x = Dropout(0.5)(x)
-        if self.one_hot:
-            x = Dense(self.num_class, activation=self.last_act)(x)  # softmax
-        else:
-            x = Dense(1, activation='linear')(x)
+        x = Dense(1, activation='linear')(x)
         model = Model(inputs=inputs, outputs=x)
-        model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
+        model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse'])
         return model
 
     def _conv_relu_maxpool(self, inp, filter_size):
@@ -49,9 +44,6 @@ class TextRCNN(TextModel):
         return x
 
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}_cls-{cls}_reg-{reg}.h5".format(
-            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch, reg=int(not self.one_hot),
-            embed=self.embed_size, max_len=self.max_len, wind=self.filter_window,
-            time=self.time, inp_num=self.inputs_num, cls=self.num_class,
-            upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial)
-        )
+        return "{pre}_{epo}_{embed}_{max_len}_{wind}_{time}_upt-{upt}_tn-{tn}.h5".format(
+            pre=self.__class__.__name__, epo=self.nb_epoch, embed=self.embed_size, max_len=self.max_len,
+            wind=self.filter_window, time=self.time, upt=int(self.use_pretrained), tn=int(self.trainable))

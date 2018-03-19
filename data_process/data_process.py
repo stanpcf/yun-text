@@ -16,7 +16,7 @@ from utils import get_stop_words
 
 stop_words = get_stop_words()
 fill_value = "CSFxe"
-user_dict = './yan_word.txt'
+# user_dict = './yan_word.txt'
 
 def clean_str(stri):
     stri = re.sub(r'[a-zA-Z0-9]+', '', stri)
@@ -31,23 +31,27 @@ def _filter_stop_words(word_list):
     return x
 
 
-thu = thulac.thulac(seg_only=True, user_dict=user_dict)
+# thu = thulac.thulac(seg_only=True, user_dict=user_dict)
+thu = thulac.thulac(seg_only=True)
 pynlpir.open(encoding_errors='ignore')
 
-jieba.load_userdict(user_dict)
+# jieba.load_userdict(user_dict)
 #fool.load_userdict(user_dict)
 #pynlpir.nlpir.AddUserWord(user_dict)
 
 data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "input")
 processed_dir = "processed"
-train_file = 'train_first.csv'
-test_file = 'predict_first.csv'
+train_file = 'train_second.csv'
+test_file = 'predict_second.csv'
 
-train = pd.read_csv(os.path.join(data_dir, 'YNU.EDU2018-ScenicWord', train_file))
+train_a = pd.read_csv(os.path.join(data_dir, 'YNU.EDU2018-ScenicWord', 'train_first.csv'))
+train_b = pd.read_csv(os.path.join(data_dir, 'YNU.EDU2018-ScenicWord-Semi', 'train_second.csv'))
+train = pd.concat([train_a, train_b], ignore_index=True)
+print("--->train shape:", train.shape)
 # print("before drop duplicate, train shape:", train.shape)
 # train.drop_duplicates(subset='Discuss', keep='first', inplace=True)
 # print("after drop duplicate, train shape:", train.shape)
-test = pd.read_csv(os.path.join(data_dir, 'YNU.EDU2018-ScenicWord', test_file))
+test = pd.read_csv(os.path.join(data_dir, 'YNU.EDU2018-ScenicWord-Semi', test_file))
 
 jieba_train, jieba_test = [], []
 fool_train, fool_test = [], []

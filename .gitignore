@@ -102,3 +102,7 @@ result_submit/
 .DS_Store
 *.csv
 note.txt
+*.ipynb
+*.bin
+fast_text/*.txt
+data_process/feature_engine.py

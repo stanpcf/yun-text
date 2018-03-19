@@ -7,8 +7,7 @@ from keras.models import Model
 sys.path.append("../")
 
 from base_model import TextModel
-from data_process import cfg, get_embedding_layer
-from metric import tensor_yun_loss
+from data_process import get_embedding_layer
 
 
 class TextCNN(TextModel):
@@ -18,39 +17,22 @@ class TextCNN(TextModel):
         super(TextCNN, self).__init__(**kwargs)
 
     def get_model(self):
-        inputs, x = self._get_multi_input(self.inputs_num)
-        x = Dense(128, activation='relu')(x)
-        if self.one_hot:
-            x = Dropout(0.3)(x)
-            x = Dense(self.num_class, activation=self.last_act)(x)  # softmax
-        else:
-            x = Dense(1, activation='linear')(x)
+        inputs = Input(shape=(self.max_len,))
+        emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
+                                  use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
+        x = Conv1D(128, self.filter_window, activation='relu')(emb)
+        x = GlobalMaxPool1D()(x)
+
+        x = Dense(1, activation='linear')(x)
         model = Model(inputs=inputs, outputs=x)
-        model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
+        model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse'])
         return model
 
-    def _get_multi_input(self, num):
-        inputs = []
-        outputs = []
-        for _ in range(num):
-            inp = Input(shape=(self.max_len,))
-            emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                      use_pretrained=self.use_pretrained, trainable=self.trainable)(inp)
-            x = Conv1D(128, self.filter_window, activation='relu')(emb)
-            x = GlobalMaxPool1D()(x)
-            # x = Dropout(0.3)(x)
-            outputs.append(x)
-            inputs.append(inp)
-        output = concatenate(outputs) if num >= 2 else outputs[0]
-        return inputs, output
-
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}_cls-{cls}_reg-{reg}.h5".format(
-            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
-            embed=self.embed_size, max_len=self.max_len, wind=self.filter_window,
-            time=self.time, inp_num=self.inputs_num, cls=self.num_class,
-            upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial), reg=int(not self.one_hot)
-        )
+        return "{pre}_{epo}_{embed}_{max_len}_{wind}_{time}_upt-{upt}_tn-{tn}.h5".format(
+            pre=self.__class__.__name__, epo=self.nb_epoch, embed=self.embed_size, max_len=self.max_len,
+            wind=self.filter_window, time=self.time,
+            upt=int(self.use_pretrained), tn=int(self.trainable))
 
 
 class TextCNNBN(TextModel):
@@ -60,40 +42,25 @@ class TextCNNBN(TextModel):
         super(TextCNNBN, self).__init__(**kwargs)
 
     def get_model(self):
-        inputs, x = self._get_multi_input(self.inputs_num)
+        inputs = Input(shape=(self.max_len,))
+        emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
+                                  use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
+        x = Conv1D(128, self.filter_window)(emb)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = GlobalMaxPool1D()(x)
 
         x = Dense(128)(x)
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
 
-        if self.one_hot:
-            x = Dense(self.num_class, activation=self.last_act)(x)  # softmax
-        else:
-            x = Dense(1, activation='linear')(x)
+        x = Dense(1, activation='linear')(x)
         model = Model(inputs=inputs, outputs=x)
-        model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse', tensor_yun_loss])
+        model.compile(loss='mse', optimizer=self.optimizer, metrics=['acc', 'mse'])
         return model
 
-    def _get_multi_input(self, num):
-        inputs = []
-        outputs = []
-        for _ in range(num):
-            inp = Input(shape=(self.max_len,))
-            emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                      use_pretrained=self.use_pretrained, trainable=self.trainable)(inp)
-            x = Conv1D(128, self.filter_window)(emb)
-            x = BatchNormalization()(x)
-            x = Activation('relu')(x)
-            x = GlobalMaxPool1D()(x)
-            outputs.append(x)
-            inputs.append(inp)
-        output = concatenate(outputs) if num >= 2 else outputs[0]
-        return inputs, output
-
     def _get_bst_model_path(self):
-        return "{pre}_{act}_{epo}_{embed}_{max_len}_{wind}_{time}_{inp_num}_upt-{upt}_tn-{tn}_ser-{ser}_cls-{cls}_reg-{reg}.h5".format(
-            pre=self.__class__.__name__, act=self.last_act, epo=self.nb_epoch,
-            embed=self.embed_size, max_len=self.max_len, wind=self.filter_window,
-            time=self.time, inp_num=self.inputs_num, cls=self.num_class,
-            upt=int(self.use_pretrained), tn=int(self.trainable), ser=int(self.data.serial), reg=int(not self.one_hot)
-        )
+        return "{pre}_{epo}_{embed}_{max_len}_{wind}_{time}_upt-{upt}_tn-{tn}.h5".format(
+            pre=self.__class__.__name__, epo=self.nb_epoch, embed=self.embed_size, max_len=self.max_len,
+            wind=self.filter_window, time=self.time,
+            upt=int(self.use_pretrained), tn=int(self.trainable))

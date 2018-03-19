@@ -22,16 +22,19 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
 def train():
     pro_dir = Path(__file__).absolute().parent.parent
-    train_file = pro_dir / 'input' / 'processed' / 'train_first.csv'
-    test_file = pro_dir / 'input' / 'processed' / 'predict_first.csv'
-    columns = ['fool', 'jieba', 'pynlpir', 'thulac']
+    train_file = pro_dir / 'input' / 'processed' / 'train_second.csv'
+    test_file = pro_dir / 'input' / 'processed' / 'predict_second.csv'
+    test_a_file = pro_dir / 'input' / 'processed' / 'predict_first.csv'
+    columns = ['jieba']
+    # columns = ['fool', 'jieba', 'pynlpir', 'thulac']
 
     stop_words = get_stop_words()
     train = pd.read_csv(train_file)
     test = pd.read_csv(test_file)
+    test_a = pd.read_csv(test_a_file)
 
     corpus = []
-    for df in [train, test]:
+    for df in [train, test, test_a]:
         for col in columns:
             ser = df[col]
             ser = ser[ser.isnull() == False]  # 因为样本中有NAN
