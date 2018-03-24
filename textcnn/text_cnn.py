@@ -16,7 +16,7 @@ class TextCNN(TextModel):
         self.filter_window = filter_window
         super(TextCNN, self).__init__(**kwargs)
 
-    def get_model(self):
+    def get_model(self, trainable=None):
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
                                   use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
@@ -41,7 +41,7 @@ class TextCNNBN(TextModel):
         self.filter_window = filter_window
         super(TextCNNBN, self).__init__(**kwargs)
 
-    def get_model(self):
+    def get_model(self, trainable=None):
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
                                   use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)

@@ -11,11 +11,11 @@ from base_model import TextModel
 
 
 class AttentionLSTM(TextModel):
-    def get_model(self):
+    def get_model(self, trainable=None):
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
                                   use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
-        x = Bidirectional(LSTM(128, return_sequences=True))(emb)
+        x = Bidirectional(CuDNNGRU(128, return_sequences=True))(emb)
         x = self.attention_3d_block(x)
         x = GlobalMaxPool1D()(x)
         x = Dense(128, activation='relu')(x)

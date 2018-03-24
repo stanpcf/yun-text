@@ -6,16 +6,16 @@ from keras.models import Model
 
 sys.path.append("../")
 
-from data_process import get_embedding_layer
+from data_process import get_embedding_layer, cfg
 from base_model import TextModel, Attention
 
 
 class AttentionLSTM1(TextModel):
-    def get_model(self):
+    def get_model(self, trainable=None):
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
                                   use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
-        x = Bidirectional(LSTM(128, return_sequences=True))(emb)
+        x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         x = Attention(self.max_len)(x)
         x = Dense(64, activation='relu')(x)
         x = Dense(1, activation='linear')(x)

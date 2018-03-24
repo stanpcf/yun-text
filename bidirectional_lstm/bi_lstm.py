@@ -11,11 +11,11 @@ from base_model import TextModel
 
 class BiLSTM(TextModel):
     """该模型使用多种分词工具之后的切割作为输入"""
-    def get_model(self):
+    def get_model(self, trainable=None):
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
                                   use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
-        x = Bidirectional(LSTM(cfg.LSTM_hidden_size, return_sequences=True))(emb)
+        x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         x = GlobalMaxPool1D()(x)
         x = Dense(64)(x)
         x = BatchNormalization()(x)

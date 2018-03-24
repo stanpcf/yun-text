@@ -8,9 +8,9 @@ from collections import namedtuple
 usage: ipython -i result_analysis.py
 """
 pro_dir = os.path.dirname(os.path.abspath(__file__))
-train = pd.read_csv(pro_dir + "/input/processed/train_first.csv")
+train = pd.read_csv(pro_dir + "/input/processed/train_second.csv")
 train_enh = pd.read_csv(pro_dir + "/input/processed/train_first_enhance.csv")
-test = pd.read_csv(pro_dir + "/input/processed/predict_first.csv")
+test = pd.read_csv(pro_dir + "/input/processed/predict_second.csv")
 
 
 def get_result_stat(h5_path, enhance=False):

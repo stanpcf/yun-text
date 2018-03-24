@@ -4,11 +4,13 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
 import pandas as pd
+import numpy as np
 from keras.models import Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import Layer
 from keras import initializers, regularizers, constraints
 from keras import backend as K
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from metric import yun_metric
 from data_process import cfg
@@ -40,12 +42,17 @@ class TextModel(object):
         self.use_pretrained = use_pretrained
         self.trainable = trainable
         self.time = datetime.now().strftime('%y%m%d%H%M%S')
-        self.callback_list = []
+        # self.callback_list = []
         self.kwargs = kwargs
         self.data = data
+        self.is_kfold = kwargs.get('is_kfold', False)
+        self.kfold = kwargs.get('kfold', 0)
+        if self.is_kfold:
+            self.bst_model_path_list = []
+        self.is_retrain = kwargs.get('is_retrain') if not self.trainable else False  # 当trainble 为False时才is_retrain 可用
 
     @abstractmethod
-    def get_model(self) -> Model:
+    def get_model(self, trainable=None) -> Model:
         """定义一个keras net, compile it and return the model"""
         raise NotImplementedError
 
@@ -54,57 +61,96 @@ class TextModel(object):
         """return a name which is used for save trained weights"""
         raise NotImplementedError
 
-    def _model_fit(self, model: Model):
-        model.fit(self.data.x_train, self.data.y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
-                  validation_split=cfg.MODEL_FIT_validation_split, callbacks=self.callback_list)
-
     def get_bst_model_path(self):
         dirname = self._get_model_path()
         path = os.path.join(dirname, self._get_bst_model_path())
         return path
 
     def train(self):
-        model = self.get_model()
-        model.summary()
-
         bst_model_path = self.get_bst_model_path()
-        if cfg.MODEL_FIT_validation_split > 0:
-            model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
-            early_stopping = EarlyStopping(monitor='val_loss', patience=20)
-            self.callback_list.append(early_stopping)
+        model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=True, save_weights_only=True)
+        early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+
+        if self.is_kfold:
+            test_prd_mean = []
+            folds = list(StratifiedKFold(n_splits=self.kfold, shuffle=True,
+                                         random_state=2017).split(self.data.x_train, self.data.y_train))
+            for i, (train_index, valid_index) in enumerate(folds, start=1):
+                model = self.get_model()
+                model.summary()
+                bmp = bst_model_path + '_' + str(i)
+                self.bst_model_path_list.append(bmp)
+                model_checkpoint = ModelCheckpoint(bmp, save_best_only=False, save_weights_only=True)
+                x_train, x_valid = self.data.x_train[train_index], self.data.x_train[valid_index]
+                y_train, y_valid = self.data.y_train[train_index], self.data.y_train[valid_index]
+                model.fit(x_train, y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
+                          validation_data=(x_valid, y_valid), callbacks=[model_checkpoint, early_stopping])
+                print("model train finish: ", bmp, "at time: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                valid_prd, test_prd = self.model_predict(model, val_data=(x_valid, y_valid))
+                print("valid yun metric:", yun_metric(y_valid, valid_prd))
+                if self.is_retrain:
+                    valid_prd, test_prd = self.retrain(bmp, train_data=(x_train, y_train), valid_data=(x_valid, y_valid))
+                test_prd_mean.append(test_prd)
+
+            test_prd_mean = np.array(test_prd_mean)
+            test_prd_mean = np.mean(test_prd_mean, axis=0)
+            self._save_to_csv(self.data.test_id, test_prd_mean, bst_model_path)
         else:
-            model_checkpoint = ModelCheckpoint(bst_model_path, save_best_only=False, save_weights_only=True)
-        self.callback_list.append(model_checkpoint)
-        self._model_fit(model)
-        print("model train finish: ", bst_model_path, "at time: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            model = self.get_model()
+            model.summary()
+            x_train, x_valid, y_train, y_valid = train_test_split(self.data.x_train, self.data.y_train,
+                                                                  random_state=2017,
+                                                                  test_size=cfg.MODEL_FIT_validation_split)
+            model.fit(x_train, y_train, batch_size=self.batch_size, epochs=self.nb_epoch,
+                      validation_data=(x_valid, y_valid), callbacks=[model_checkpoint, early_stopping])
+            print("model train finish: ", bst_model_path, "at time: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            valid_prd, test_prd = self.model_predict(model, val_data=(x_valid, y_valid))
+            print("valid yun metric:", yun_metric(y_valid, valid_prd))
+            if self.is_retrain:
+                valid_prd, test_prd = self.retrain(bst_model_path, train_data=(x_train, y_train),
+                                                   valid_data=(x_valid, y_valid))
+            self._save_to_csv(self.data.test_id, test_prd, bst_model_path)
 
-    def predict(self, predict_offline=True, bst_model_path=None):
-        if not bst_model_path:
-            bst_model_path = self.get_bst_model_path()
-
-        model = self.get_model()
+    def retrain(self, bst_model_path, train_data, valid_data):
+        """
+        :param bst_model_path:
+        :param train_data: (x_train, y_train)
+        :param valid_data: (x_valid, y_valid)
+        :return:
+        """
+        print('----> retrain model:', bst_model_path)
+        model = self.get_model(trainable=True)
         model.load_weights(bst_model_path)
-        if predict_offline:
-            valid_pred = model.predict(self.data.x_valid)
-            self._save_to_csv(self.data.valid_id, valid_pred, bst_model_path, valid_data=True)
-            _y_valid = self.data.y_valid
-            print("valid yun metric:", yun_metric(_y_valid, valid_pred))
-        y_test = model.predict(self.data.x_test)
-        self._save_to_csv(self.data.test_id, y_test, bst_model_path, valid_data=False)
+        new_path = bst_model_path + "_retrain"
+        model_checkpoint = ModelCheckpoint(new_path, save_best_only=True, save_weights_only=True)
+        early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+        call_back = [model_checkpoint, early_stopping]
+        model.fit(train_data[0], train_data[1], batch_size=self.batch_size, epochs=self.nb_epoch,
+                  validation_data=valid_data, callbacks=call_back)
+        print("model retrain finish: ", new_path, "at time: ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        valid_prd, test_prd = self.model_predict(model, val_data=valid_data)
+        print("model retrain,valid yun metric:", yun_metric(valid_data[1], valid_prd))
+        return valid_prd, test_prd
 
-    def _save_to_csv(self, ids, scores, path, valid_data=False):
+    def model_predict(self, model, val_data):
+        """
+        :param model: keras model which has been trained
+        :param val_data: 线下验证数据集(x_valid, y_valid)
+        """
+        valid_prd = model.predict(val_data[0])
+        valid_prd = np.reshape(valid_prd, (valid_prd.shape[0],))
+        test_prd = model.predict(self.data.x_test)
+        test_prd = np.reshape(test_prd, (test_prd.shape[0],))
+        return valid_prd, test_prd
+
+    def _save_to_csv(self, ids, scores, path):
         assert len(ids) == len(scores)
+        print(scores)
         sample_submission = pd.DataFrame({
             "Id": ids,
             "Score": scores
         })
-        if not valid_data:
-            result_path = self._get_result_path(path)
-        else:
-            _tmp = self._get_result_path(path)
-            _list = _tmp.split("/")
-            _tmp = _list[:-1] + ["valid_"+_list[-1]]
-            result_path = "/".join(_tmp)
+        result_path = self._get_result_path(path)
         sample_submission.to_csv(result_path, index=False, header=False)
 
     def _get_result_path(self, bst_model_path):
