@@ -17,30 +17,31 @@ class TextRCNN(TextModel):
         super(TextRCNN, self).__init__(**kwargs)
 
     def get_model(self, trainable=None):
+        trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
-        x = Bidirectional(LSTM(cfg.LSTM_hidden_size, return_sequences=True))(emb)
-        x = concatenate([x, emb], axis=2)
-        reshape = Reshape((self.max_len, self.embed_size + cfg.LSTM_hidden_size * 2, 1))(x)
+                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+        x = Bidirectional(CuDNNLSTM(cfg.LSTM_hidden_size, return_sequences=True))(emb)
+        x = Bidirectional(CuDNNLSTM(cfg.LSTM_hidden_size, return_sequences=True))(x)
+        con = concatenate([x, emb], axis=2)
 
         concat_x = []
         for filter_size in cfg.TEXT_CNN_filters:
-            x = reshape
+            x = con
             x = self._conv_relu_maxpool(x, filter_size)
             concat_x.append(x)
 
         x = concatenate(concat_x, axis=1)
-        x = Flatten()(x)
         x = Dropout(0.5)(x)
+        x = Dense(5, activation='relu')(x)
         x = Dense(1, activation='linear')(x)
         model = Model(inputs=inputs, outputs=x)
         model.compile(loss='mse', optimizer=self.optimizer)
         return model
 
     def _conv_relu_maxpool(self, inp, filter_size):
-        x = Conv2D(128, kernel_size=(filter_size, self.embed_size + cfg.LSTM_hidden_size*2), activation='relu')(inp)
-        x = MaxPool2D(pool_size=(self.max_len - filter_size + 1, 1), strides=(1, 1))(x)
+        x = Conv1D(128, kernel_size=filter_size, activation='relu')(inp)
+        x = GlobalMaxPool1D()(x)
         return x
 
     def _get_bst_model_path(self):

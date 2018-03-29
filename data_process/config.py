@@ -19,7 +19,7 @@ class cfg:
 
     TEXT_CNN_filters = [1, 2, 3, 4, 5]    # text cnn 多卷积通道的卷积核大小
 
-    LSTM_hidden_size = 512
+    LSTM_hidden_size = 128
 
     Keras_padding = "post"          # pre,     keras, pad_sequence的方式.
 

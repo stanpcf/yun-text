@@ -1,1 +1,1 @@
-from .bi_lstm import BiLSTM
+from .bi_lstm import BiLSTM, BiLSTM1
