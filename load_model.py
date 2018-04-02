@@ -16,17 +16,18 @@ flags.DEFINE_bool('use_pretrained', True, "if use pretrained vector for embeddin
 flags.DEFINE_bool('trainable', True,
                   "if the embedding layer is trainable. this param is used only `use_pretrained` is true")
 # data relation
-flags.DEFINE_float('train_size', 0.9, "the rate of train-valid split for train data set")
-flags.DEFINE_integer('max_len', 80, "regular sentence to a fixed length")
-flags.DEFINE_string("bst_model_path", None, "h5 path")
-flags.DEFINE_boolean('is_kfold', False, "is kfold")
-flags.DEFINE_integer('kfold', 8, "k when kfold is true")
+flags.DEFINE_integer('max_len', 150, "regular sentence to a fixed length")
+flags.DEFINE_string('kfold_model_path', '', "weights for keras model")
 
 FLAGS = flags.FLAGS
 
 
+def get_predict():
+    pass
+
+
 def main():
-    data = get_data(train_size=FLAGS.train_size, max_len=FLAGS.max_len)
+    data = get_data(max_len=FLAGS.max_len)
 
     cls_name = FLAGS.classifier
     module_name = ".".join(cls_name.split('.')[:-1])
@@ -37,16 +38,8 @@ def main():
     model = cls(data=data, nb_epoch=FLAGS.nb_epoch, max_len=FLAGS.max_len, embed_size=FLAGS.embed_size,
                 batch_size=FLAGS.batch_size, optimizer=FLAGS.optimizer,
                 use_pretrained=FLAGS.use_pretrained, trainable=FLAGS.trainable,
-                is_kfold=FLAGS.is_kfold, kfold=FLAGS.kfold)
-
-    bmp = FLAGS.bst_model_path
-    bmp_list = [bmp + "_" + str(i) for i in range(1, FLAGS.kfold)]
-    model.bst_model_path_list = bmp_list
-    model.predict(bst_model_path=FLAGS.bst_model_path)
-    for bmp in bmp_list:
-        model.retrain(bmp)
-    model.predict(bst_model_path=FLAGS.bst_model_path + "_retrain")
-
+                is_kfold=True, kfold=10, is_retrain=True)
+    model.model_predict_with_weights(FLAGS.kfold_model_path)
 
 if __name__ == '__main__':
     main()

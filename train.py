@@ -10,6 +10,7 @@ from data_process import get_data
 flags.DEFINE_string('classifier', 'bidirectional_lstm.BiLSTM', "path of the Class for the classifier")
 flags.DEFINE_integer('nb_epoch', 50, "number of epoch")
 flags.DEFINE_integer('embed_size', 300, "hidden size of embedding layer")
+flags.DEFINE_boolean('use_new_vector', False, 'if use new vector')
 flags.DEFINE_integer('batch_size', 640, "batch size for train")
 flags.DEFINE_string('optimizer', 'adam', "the optimizer for train")
 flags.DEFINE_bool('use_pretrained', True, "if use pretrained vector for embedding layer")
@@ -37,7 +38,8 @@ def main():
     model = cls(data=data, nb_epoch=FLAGS.nb_epoch, max_len=FLAGS.max_len, embed_size=FLAGS.embed_size,
                 batch_size=FLAGS.batch_size, optimizer=FLAGS.optimizer,
                 use_pretrained=FLAGS.use_pretrained, trainable=FLAGS.trainable,
-                is_kfold=FLAGS.is_kfold, kfold=FLAGS.kfold, is_retrain=FLAGS.is_retrain)
+                is_kfold=FLAGS.is_kfold, kfold=FLAGS.kfold, is_retrain=FLAGS.is_retrain,
+                use_new_vector=FLAGS.use_new_vector)
     model.train()
 
 if __name__ == '__main__':

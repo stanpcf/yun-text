@@ -5,9 +5,10 @@ from datetime import datetime
 
 import pandas as pd
 import numpy as np
+import pickle
 from keras.models import Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.layers import Layer
+from keras.layers import Layer, Activation
 from keras import initializers, regularizers, constraints
 from keras import backend as K
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -50,6 +51,7 @@ class TextModel(object):
         if self.is_kfold:
             self.bst_model_path_list = []
         self.is_retrain = kwargs.get('is_retrain') if not self.trainable else False  # 当trainble 为False时才is_retrain 可用
+        self.use_new_vector = kwargs.get('use_new_vector')
 
     @abstractmethod
     def get_model(self, trainable=None) -> Model:
@@ -72,9 +74,14 @@ class TextModel(object):
         early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
         if self.is_kfold:
+            s_train = np.zeros((self.data.x_train.shape[0], 1))
+            s_test = np.zeros((self.data.x_test.shape[0], 1))
+            s_test_i = np.zeros((self.data.x_test.shape[0], self.kfold))
             test_prd_mean = []
-            folds = list(StratifiedKFold(n_splits=self.kfold, shuffle=True,
-                                         random_state=2017).split(self.data.x_train, self.data.y_train))
+            # folds = list(StratifiedKFold(n_splits=self.kfold, shuffle=True,
+            #                              random_state=2017).split(self.data.x_train, self.data.y_train))
+            with open('./input/pkl_dir/fold_10_train_220000_test_50000_by_ding_server.pkl', 'rb') as f:
+                folds = pickle.load(f)
             for i, (train_index, valid_index) in enumerate(folds, start=1):
                 model = self.get_model()
                 model.summary()
@@ -91,6 +98,20 @@ class TextModel(object):
                 if self.is_retrain:
                     valid_prd, test_prd = self.retrain(bmp, train_data=(x_train, y_train), valid_data=(x_valid, y_valid))
                 test_prd_mean.append(test_prd)
+                s_train[valid_index, 0] = valid_prd
+                s_test_i[:, i] = test_prd
+            s_test[:, 0] = s_test_i.mean(axis=1)
+            print(s_train.shape, s_test.shape)
+            print(s_train[:10])
+            print(s_test[:10])
+            print(self._get_result_path(bst_model_path))
+            train_pkl_path = self._get_result_path(bst_model_path)[:-4] + "_train_stacking.pkl"
+            with open(train_pkl_path, 'wb') as f:
+                pickle.dump(s_train, f)
+
+            test_pkl_path = self._get_result_path(bst_model_path)[:-4] + "_test_stacking.pkl"
+            with open(test_pkl_path, 'wb') as f:
+                pickle.dump(s_test, f)
 
             test_prd_mean = np.array(test_prd_mean)
             test_prd_mean = np.mean(test_prd_mean, axis=0)
@@ -142,6 +163,33 @@ class TextModel(object):
         test_prd = model.predict(self.data.x_test)
         test_prd = np.reshape(test_prd, (test_prd.shape[0],))
         return valid_prd, test_prd
+
+    # '''
+    def model_predict_with_weights(self, bst_model_path):
+        """
+        该函数用于导入已经训练好的model weights. 用于cv
+        :return:
+        """
+        s_train = np.zeros((self.data.x_train.shape[0], 1))
+        s_test = np.zeros((self.data.x_test.shape[0], 1))
+        s_test_i = np.zeros((self.data.x_test.shape[0], self.kfold))
+        folds = list(StratifiedKFold(n_splits=self.kfold, shuffle=True,
+                                     random_state=2017).split(self.data.x_train, self.data.y_train))
+        for i, (train_index, valid_index) in enumerate(folds, start=1):
+            model = self.get_model()
+            bmp = bst_model_path + '_' + str(i) + '_retrain'
+            model.load_weights(bmp)
+            _, x_valid = self.data.x_train[train_index], self.data.x_train[valid_index]
+            _, y_valid = self.data.y_train[train_index], self.data.y_train[valid_index]
+            valid_prd, test_prd = self.model_predict(model, val_data=(x_valid, y_valid))
+            print("valid yun metric:", bmp, yun_metric(y_valid, valid_prd))
+            s_train[valid_index, 0] = valid_prd
+            s_test_i[:, i] = test_prd
+        s_test[:, 0] = s_test_i.mean(axis=1)
+        print(s_train.shape, s_test.shape)
+        print(s_train[:10])
+        print(s_test[:10])
+    # '''
 
     def _save_to_csv(self, ids, scores, path):
         assert len(ids) == len(scores)
@@ -262,3 +310,75 @@ class Attention(Layer):
     def compute_output_shape(self, input_shape):
         # return input_shape[0], input_shape[-1]
         return input_shape[0], self.features_dim
+
+
+def squash(x, axis=-1):
+    # s_squared_norm is really small
+    # s_squared_norm = K.sum(K.square(x), axis, keepdims=True) + K.epsilon()
+    # scale = K.sqrt(s_squared_norm)/ (0.5 + s_squared_norm)
+    # return scale * x
+    s_squared_norm = K.sum(K.square(x), axis, keepdims=True)
+    scale = K.sqrt(s_squared_norm + K.epsilon())
+    return x / scale
+
+
+class Capsule(Layer):
+    def __init__(self, num_capsule, dim_capsule, routings=3, kernel_size=(9, 1), share_weights=True,
+                 activation='default', **kwargs):
+        super(Capsule, self).__init__(**kwargs)
+        self.num_capsule = num_capsule
+        self.dim_capsule = dim_capsule
+        self.routings = routings
+        self.kernel_size = kernel_size
+        self.share_weights = share_weights
+        if activation == 'default':
+            self.activation = squash
+        else:
+            self.activation = Activation(activation)
+
+    def build(self, input_shape):
+        super(Capsule, self).build(input_shape)
+        input_dim_capsule = input_shape[-1]
+        if self.share_weights:
+            self.W = self.add_weight(name='capsule_kernel',
+                                     shape=(1, input_dim_capsule,
+                                            self.num_capsule * self.dim_capsule),
+                                     # shape=self.kernel_size,
+                                     initializer='glorot_uniform',
+                                     trainable=True)
+        else:
+            input_num_capsule = input_shape[-2]
+            self.W = self.add_weight(name='capsule_kernel',
+                                     shape=(input_num_capsule,
+                                            input_dim_capsule,
+                                            self.num_capsule * self.dim_capsule),
+                                     initializer='glorot_uniform',
+                                     trainable=True)
+
+    def call(self, u_vecs):
+        if self.share_weights:
+            u_hat_vecs = K.conv1d(u_vecs, self.W)
+        else:
+            u_hat_vecs = K.local_conv1d(u_vecs, self.W, [1], [1])
+
+        batch_size = K.shape(u_vecs)[0]
+        input_num_capsule = K.shape(u_vecs)[1]
+        u_hat_vecs = K.reshape(u_hat_vecs, (batch_size, input_num_capsule,
+                                            self.num_capsule, self.dim_capsule))
+        u_hat_vecs = K.permute_dimensions(u_hat_vecs, (0, 2, 1, 3))
+        # final u_hat_vecs.shape = [None, num_capsule, input_num_capsule, dim_capsule]
+
+        b = K.zeros_like(u_hat_vecs[:, :, :, 0])  # shape = [None, num_capsule, input_num_capsule]
+        for i in range(self.routings):
+            b = K.permute_dimensions(b, (0, 2, 1))  # shape = [None, input_num_capsule, num_capsule]
+            c = K.softmax(b)
+            c = K.permute_dimensions(c, (0, 2, 1))
+            b = K.permute_dimensions(b, (0, 2, 1))
+            outputs = self.activation(K.batch_dot(c, u_hat_vecs, [2, 2]))
+            if i < self.routings - 1:
+                b = K.batch_dot(outputs, u_hat_vecs, [2, 3])
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return (None, self.num_capsule, self.dim_capsule)
