@@ -19,7 +19,8 @@ class TextCNN(TextModel):
     def get_model(self, trainable=None):
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         x = Conv1D(128, self.filter_window, activation='relu')(emb)
         x = GlobalMaxPool1D()(x)
 
@@ -44,7 +45,8 @@ class TextCNNBN(TextModel):
     def get_model(self, trainable=None):
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         x = Conv1D(128, self.filter_window)(emb)
         x = BatchNormalization()(x)
         x = Activation('relu')(x)

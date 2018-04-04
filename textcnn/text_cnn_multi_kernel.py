@@ -20,7 +20,8 @@ class TextCNNMultiKernel1D(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
 
         concat_x = []
         for filter_size in self.filters:

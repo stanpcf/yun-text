@@ -14,7 +14,8 @@ class AttentionLSTM(TextModel):
     def get_model(self, trainable=None):
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=self.trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         x = Bidirectional(CuDNNGRU(128, return_sequences=True))(emb)
         x = self.attention_3d_block(x)
         x = GlobalMaxPool1D()(x)

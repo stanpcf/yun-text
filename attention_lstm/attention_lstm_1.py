@@ -32,7 +32,8 @@ class AttentionLSTM1(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         x = Attention(self.max_len)(x)
@@ -54,7 +55,8 @@ class AttentionLSTM1_c1(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(x)
@@ -77,7 +79,8 @@ class AttentionLSTM1_c2(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(x)
@@ -100,7 +103,8 @@ class AttentionLSTM1_c3(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         # emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(x)
@@ -123,7 +127,8 @@ class AttentionLSTM1_c4(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         # x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(x)
@@ -146,7 +151,8 @@ class AttentionLSTM1_c5(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         # x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(x)
@@ -169,7 +175,8 @@ class AttentionLSTM1_c6(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         # emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(emb)
         # x = Bidirectional(CuDNNGRU(cfg.LSTM_hidden_size, return_sequences=True))(x)
@@ -192,7 +199,8 @@ class AttentionLSTM1_c7(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(200, return_sequences=True))(emb)
         x = Bidirectional(CuDNNGRU(200, return_sequences=True))(x)
@@ -215,7 +223,8 @@ class AttentionLSTM1_c8(TextModel):
         trainable = self.trainable if trainable is None else trainable
         inputs = Input(shape=(self.max_len,))
         emb = get_embedding_layer(self.data.tokenizer, max_len=self.max_len, embedding_dim=self.embed_size,
-                                  use_pretrained=self.use_pretrained, trainable=trainable)(inputs)
+                                  use_pretrained=self.use_pretrained, trainable=trainable,
+                                  use_new_vector=self.use_new_vector)(inputs)
         emb = SpatialDropout1D(0.5)(emb)
         x = Bidirectional(CuDNNGRU(250, return_sequences=True))(emb)
         x = Bidirectional(CuDNNGRU(250, return_sequences=True))(x)

@@ -82,6 +82,7 @@ class TextModel(object):
             #                              random_state=2017).split(self.data.x_train, self.data.y_train))
             with open('./input/pkl_dir/fold_10_train_220000_test_50000_by_ding_server.pkl', 'rb') as f:
                 folds = pickle.load(f)
+            assert len(folds) == self.kfold
             for i, (train_index, valid_index) in enumerate(folds, start=1):
                 model = self.get_model()
                 model.summary()
@@ -99,7 +100,7 @@ class TextModel(object):
                     valid_prd, test_prd = self.retrain(bmp, train_data=(x_train, y_train), valid_data=(x_valid, y_valid))
                 test_prd_mean.append(test_prd)
                 s_train[valid_index, 0] = valid_prd
-                s_test_i[:, i] = test_prd
+                s_test_i[:, i-1] = test_prd
             s_test[:, 0] = s_test_i.mean(axis=1)
             print(s_train.shape, s_test.shape)
             print(s_train[:10])
@@ -184,7 +185,7 @@ class TextModel(object):
             valid_prd, test_prd = self.model_predict(model, val_data=(x_valid, y_valid))
             print("valid yun metric:", bmp, yun_metric(y_valid, valid_prd))
             s_train[valid_index, 0] = valid_prd
-            s_test_i[:, i] = test_prd
+            s_test_i[:, i-1] = test_prd
         s_test[:, 0] = s_test_i.mean(axis=1)
         print(s_train.shape, s_test.shape)
         print(s_train[:10])
