@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 # coding: utf8
-
+import glob
 from pathlib import Path
 import multiprocessing
 import logging
 import pandas as pd
 from gensim.models import Word2Vec
 from tensorflow import flags
+from tqdm import tqdm
+from random import shuffle
 
-from utils import get_stop_words
+from utils import process_str
 
 flags.DEFINE_integer('hidden_dim', 100, 'hidden dim of word2vec')
 flags.DEFINE_integer('iter', 50, 'iter number')
@@ -26,9 +28,7 @@ def train():
     test_file = pro_dir / 'input' / 'processed' / 'predict_second.csv'
     test_a_file = pro_dir / 'input' / 'processed' / 'predict_first.csv'
     columns = ['jieba']
-    # columns = ['fool', 'jieba', 'pynlpir', 'thulac']
 
-    stop_words = get_stop_words()
     train = pd.read_csv(train_file)
     test = pd.read_csv(test_file)
     test_a = pd.read_csv(test_a_file)
@@ -38,13 +38,22 @@ def train():
         for col in columns:
             ser = df[col]
             ser = ser[ser.isnull() == False]  # 因为样本中有NAN
-            v = ser.apply(lambda x: [w for w in x.split(" ") if w not in stop_words]).values.tolist()
+            v = ser.apply(lambda x: x.split(" ")).values.tolist()
             corpus.extend(v)
 
-    model = Word2Vec(corpus, size=FLAGS.hidden_dim, window=FLAGS.window, min_count=len(columns) * FLAGS.min_count,
+    for _file in glob.glob(str(pro_dir) + "/input/w2v_corpus/*.txt"):
+        with open(_file) as _f:
+            for line in tqdm(_f):
+                word_list = process_str(line).split(' ')
+                corpus.append(word_list)
+
+    print("---->: Cut other corpus done")
+    shuffle(corpus)   # 将数据扰乱
+    print(corpus[:10])
+    model = Word2Vec(corpus, size=FLAGS.hidden_dim, window=FLAGS.window, min_count=3,
                      sg=1, iter=FLAGS.iter, workers=multiprocessing.cpu_count())
 
-    vector_file = pro_dir / 'input' / 'word2vec' / "my_w2v_{dim}_{iter}_{wd}.txt".format(
+    vector_file = pro_dir / 'input' / 'word2vec' / "my_w2v_{dim}_{iter}_{wd}_0402.txt".format(
         dim=FLAGS.hidden_dim, iter=FLAGS.iter, wd=FLAGS.window)
     vector_file.parent.mkdir(mode=0o755, exist_ok=True)
 
